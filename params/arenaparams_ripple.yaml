@@ -1,0 +1,52 @@
+
+Arena:
+    arena size: 200 # in cm
+    mouse speed: 30 # in cm/s
+    bin size: 0.10 # in cm
+    lap information:
+        #nlaps: 1
+        #is spatial: [0]
+        nlaps: 6
+        is spatial: [1,0,0,0,0,0]    
+    random seed: 1000000
+    
+Arena Cells:
+    MF:
+        id: 100
+        ncells: 400
+        place:
+            peak rate: 20.0
+            min rate: 0.1
+            diameter: 25 #in cm
+            probabilities: [0.0, 0.63, 0.24, 0.13] #[0.88, 0.075, 0.029, 0.016]
+        noise:
+            min rate: 1.0 #0.1
+    MEC:
+        id: 101
+        ncells: 200
+        grid:            
+            peak rate: 20.0
+            min rate: 1.0
+            ncells: 200 #100
+            diameter: 25 #in cm
+            gap: 50 # in cm
+        noise:
+            min rate: 1.0 #0.1
+            
+    LEC:
+        id: 102
+        ncells: 250
+        cue:
+            peak rate: 20.0
+            min rate: 1.0
+            diameter: 25
+            percent cue: 0.50
+        noise:
+            min rate: 1.0 #0.1
+
+            
+    Background:
+        id: 103
+        ncells: 2000
+        noise:
+            min rate: 3.0 #2.0
