@@ -89,10 +89,6 @@ INITIAL {
     h = hinf
     nf = nfinf
     ns = nsinf
-
-    VERBATIM
-    return 0;
-    ENDVERBATIM
 }
 
 ? states

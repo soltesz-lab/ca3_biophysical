@@ -1,7 +1,8 @@
 
 import numpy as np
 import yaml
-        
+import os
+
 from ca3pyr_dhh import ca3pyrcell
 from pvbc import PVBC
 from axoaxonic import AAC
@@ -24,7 +25,7 @@ from ca3_neuron_utils import create_netcon
 
 class Circuit(object):
     
-    def __init__(self, params_filepath, internal_pop2id, external_pop2id):
+    def __init__(self, params_filepath, internal_pop2id, external_pop2id, params_path='.'):
         self._read_params_filepath(params_filepath)
         self.internal_pop2id = internal_pop2id
         self.external_pop2id = external_pop2id
@@ -34,7 +35,8 @@ class Circuit(object):
         self.external_spike_times = {}
         
         self.lfp = None
-    
+
+        self.params_path = params_path
     
     def _read_params_filepath(self, params_filepath):
         with open(params_filepath, 'r') as f:
@@ -52,7 +54,7 @@ class Circuit(object):
             self.neurons[cidx] = {}
             for ctype_gid in range(nc):
                 if ctype == 'ca3pyr':
-                    self.neurons[cidx][ctype_gid] = ca3pyrcell(absolute_gid, 'B', 'CA3_Bakerb_marascoProp.pickle')
+                    self.neurons[cidx][ctype_gid] = ca3pyrcell(absolute_gid, 'B', os.path.join(self.params_path, 'CA3_Bakerb_marascoProp.pickle'))
                 elif ctype == 'pvbc':
                     self.neurons[cidx][ctype_gid] = PVBC(absolute_gid)
                 elif ctype == 'axoaxonic':
