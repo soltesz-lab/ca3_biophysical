@@ -25,7 +25,7 @@ NEURON {
 	SUFFIX can
 	USEION ca READ cai,cao WRITE ica
         RANGE gcanbar       
-        GLOBAL hinf,minf,taum,tauh
+        RANGE hinf,minf,taum,tauh
 }
 
 STATE {

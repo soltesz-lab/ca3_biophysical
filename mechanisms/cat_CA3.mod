@@ -37,7 +37,7 @@ NEURON {
 	SUFFIX cat_CA3
 	USEION ca READ cai,cao WRITE ica
         RANGE gcatbar, ica, gcat
-        GLOBAL hinf,minf,mtau,htau
+        RANGE hinf,minf,mtau,htau
 }
 
 STATE {

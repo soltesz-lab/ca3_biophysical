@@ -38,7 +38,7 @@ NEURON {
 	USEION ca READ cai VALENCE 2
 	RANGE gmax, g, ik
 	RANGE myi
-	GLOBAL oinf, otau	: these two are not thread safe
+	RANGE oinf, otau	: these two are not thread safe
     THREADSAFE
 }
 

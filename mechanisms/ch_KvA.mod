@@ -48,7 +48,7 @@ NEURON {
 	USEION k READ ek WRITE ik
         RANGE gmax,g, ik
         RANGE myi
-        GLOBAL ninf,linf,taul,taun : note that these four are not thread safe
+        RANGE ninf,linf,taul,taun : note that these four are not thread safe
     THREADSAFE
 }
 

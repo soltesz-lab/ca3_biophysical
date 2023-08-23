@@ -29,7 +29,7 @@ NEURON {
 	SUFFIX km_CA3
 	USEION k READ ek WRITE ik
         RANGE  gbar,ik, sh
-      GLOBAL inf, tau
+      RANGE inf, tau
 }
 
 STATE {

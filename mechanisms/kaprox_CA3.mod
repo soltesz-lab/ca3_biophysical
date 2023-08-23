@@ -36,7 +36,7 @@ NEURON {
 	SUFFIX kap_CA3
 	USEION k READ ek WRITE ik
         RANGE gkabar,gka, sh
-        GLOBAL ninf,linf,taul,taun,lmin
+        RANGE ninf,linf,taul,taun,lmin
 }
 
 STATE {

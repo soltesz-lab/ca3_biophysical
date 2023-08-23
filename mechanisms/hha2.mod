@@ -18,7 +18,7 @@ NEURON {
 	RANGE inf, fac, tau
 	RANGE taus
 	RANGE W
-	GLOBAL taumin
+	RANGE taumin
 }
 
 UNITS {

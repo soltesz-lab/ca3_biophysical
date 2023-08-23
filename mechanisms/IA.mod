@@ -46,7 +46,7 @@ NEURON {
         SUFFIX IA
         USEION k READ ek WRITE ik
         RANGE gkAbar,ik
-        GLOBAL ainf, binf, aexp, bexp, tau_b
+        RANGE ainf, binf, aexp, bexp, tau_b
 }
  
 INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}

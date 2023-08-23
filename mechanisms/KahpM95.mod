@@ -7,7 +7,7 @@ NEURON {
 	USEION k READ ek WRITE ik
         USEION ca READ cai
         RANGE  gbar,ik, gkahp
-        GLOBAL inf,tau
+        RANGE inf,tau
 }
 
 UNITS {

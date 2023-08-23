@@ -26,7 +26,7 @@ NEURON {
 	SUFFIX hd_CA3
 	NONSPECIFIC_CURRENT i
         RANGE ghdbar, vhalfl,ehd, i
-        GLOBAL linf,taul
+        RANGE linf,taul
 }
 
 STATE {

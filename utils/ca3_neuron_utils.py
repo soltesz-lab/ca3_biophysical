@@ -49,7 +49,13 @@ def _make_synapse(stype, compartment, weight, synapse_information, srcid, dstid,
     for k in syn_params.keys(): setattr(syn_, k, syn_params[k])
     return syn_
 
-def create_netcon(srcid, dstid, src_cell, dst_cell, synapse_information, compartment, params, vecStim=None):
+def create_netcon(pc, srcid, dstid, src_gid, dst_cell, synapse_information, compartment, params):
+
+    ncs = []
+    
+    if not pc.gid_exists(dst_cell.gid):
+        return ncs
+        
     synapse_type = synapse_information['type']
     weight       = synapse_information['weight1'] #/ float(params['scale'])
     if params['scale'] > 1:
@@ -69,19 +75,9 @@ def create_netcon(srcid, dstid, src_cell, dst_cell, synapse_information, compart
         else:
             syn_ = dst_cell.synGroups[stype][compartment][srcid][0]
 
-        if vecStim is None:
-            ref_v, sec = None, None
-            if hasattr(src_cell, 'axon'):
-                ref_v = src_cell.axon(0.5)._ref_v
-                sec   = src_cell.axon
-            else:
-                ref_v = src_cell.soma(0.5)._ref_v
-                sec   = src_cell.soma
-            nc = h.NetCon(ref_v, syn_, sec=sec)
-            nc.threshold = -10.
-        else:
-            nc = h.NetCon(vecStim, syn_)
+        nc = pc.gid_connect(src_gid, syn_)
         nc.delay     = 1.
         nc.weight[0] = weight
         ncs.append(nc)
+        
     return ncs

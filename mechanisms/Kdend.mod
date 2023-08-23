@@ -11,7 +11,7 @@ NEURON {
         SUFFIX Kdend
         USEION k READ ek WRITE ik
         RANGE gkdend, ik
-        GLOBAL ninf, nexp, ntau
+        RANGE ninf, nexp, ntau
 }
  
 INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}

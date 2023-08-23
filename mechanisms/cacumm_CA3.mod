@@ -22,7 +22,6 @@ UNITS {
 
 PARAMETER {
 	depth = 0.1 (um)	: assume volume = area*depth
-	irest = 0  (mA/cm2)		: to be initialized in hoc	
 	tau = 100 (ms)
 	cai0 = 50e-6 (mM)	: Requires explicit use in INITIAL
 			: block for it to take precedence over cai0_ca_ion
@@ -34,6 +33,7 @@ ASSIGNED {
 	ica (mA/cm2)
 	cmax
 	i  	 (mA/cm2)
+	irest  (mA/cm2)		: to be initialized in hoc	
 }
 
 STATE {

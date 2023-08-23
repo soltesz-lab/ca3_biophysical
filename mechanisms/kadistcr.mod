@@ -10,7 +10,7 @@ NEURON {
 	SUFFIX kadcr
 	USEION k READ ki, ko WRITE ik 		:Changed from READ ek, 23/04/2010,Nassi
   RANGE gkabar,gka,ik
-  GLOBAL ninf,linf,taul,taun,lmin
+  RANGE ninf,linf,taul,taun,lmin
 }
 
 

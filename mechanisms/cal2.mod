@@ -33,7 +33,7 @@ NEURON {
 	SUFFIX cal2
 	USEION ca READ cai,cao WRITE ica
         RANGE gcalbar,cai, ica, gcal, ggk
-        GLOBAL minf,tau
+        RANGE minf,tau
 }
 
 STATE {

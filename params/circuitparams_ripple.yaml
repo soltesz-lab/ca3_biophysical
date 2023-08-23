@@ -312,7 +312,7 @@ Circuit:
                     e: 0.
                     compartments: ['radProx1', 'radProx2', 'radMed1', 'radMed2']
 
-        101:
+        101: # MEC
             0: 
                 probability: 10
                 synapse:
@@ -365,15 +365,15 @@ Circuit:
                     tau2: 6.3
                     e: 0.
                     compartments: ['lmM1', 'lmM2']
-        102:
-            0: 
+        102: # LEC
+            0: # PYR
                 probability: 8
                 synapse:
                     type: ['AMPA', 'NMDA']
                     weight1: 5.0e-3 #5.0e-3 for E->E and I->E 
                     potentiation: 2.5e-5 #1.0e-5 #3.75e-6 #2.0e-5 
                     compartments: ['lacunosumLEC']
-            1:
+            1: # PVBC
                 probability: 4
                 synapse:
                     type: 'AMPA'
@@ -420,7 +420,7 @@ Circuit:
                     tau2: 6.3
                     e: 0.
                     compartments: ['lmt1', 'lmt2']
-        103:
+        103: # Background
             0:
                 probability: 80
                 synapse:

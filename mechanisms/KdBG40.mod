@@ -17,7 +17,7 @@ NEURON {
 	SUFFIX KdBG
 	USEION k WRITE ik
 	RANGE  gbar,ik
-	GLOBAL xtau, ytau, xinf, yinf
+	RANGE xtau, ytau, xinf, yinf
 }
 
 UNITS {

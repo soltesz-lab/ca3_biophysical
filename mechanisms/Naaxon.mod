@@ -48,7 +48,7 @@ NEURON {
         USEION na READ ena WRITE ina
         NONSPECIFIC_CURRENT il
         RANGE gnaaxon, gl, el, ina
-        GLOBAL minf, hinf, hexp, mtau, htau
+        RANGE minf, hinf, hexp, mtau, htau
 }
  
 INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}

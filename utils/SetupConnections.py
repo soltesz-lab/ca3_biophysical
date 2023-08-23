@@ -3,8 +3,8 @@ import yaml
 from copy import deepcopy
 import random
 import traceback
-from past.utils import old_div
 import matplotlib.pyplot as plt
+from neuron import h
 
 
 def place_field_fr(center, spatial_bins, max_fr, min_fr, diameter):
@@ -62,10 +62,10 @@ def get_inhom_poisson_spike_times_by_thinning(rate, t, dt=0.02, delay=0.0, refra
     while i < len(interp_t):
         x = generator.uniform(0.0, 1.0)
         if x > 0.:
-            ISI = old_div(-np.log(x), max_rate)
-            i += int(old_div(ISI, dt))
+            ISI = -np.log(x) / max_rate
+            i += int(ISI // dt)
             ISI_memory += ISI
-            if (i < len(interp_t)) and (generator.uniform(0.0, 1.0) <= old_div(interp_rate[i], max_rate)) and ISI_memory >= 0.:
+            if (i < len(interp_t)) and (generator.uniform(0.0, 1.0) <= interp_rate[i] / max_rate) and ISI_memory >= 0.:
                 spike_times.append(interp_t[i])
                 ISI_memory = -refractory
     return np.asarray(spike_times, dtype='float32')
@@ -75,10 +75,11 @@ def get_inhom_poisson_spike_times_by_thinning(rate, t, dt=0.02, delay=0.0, refra
 class Arena(object):
     
     def __init__(self, params_filepath, super_arena_flanks=(0,0), theta_modulation={}):
+        self.pc = h.ParallelContext()
         self.params = {}
         self.params_filepath = params_filepath
         self._read_arena_params()
-        self._read_arena_cellular_params()
+        self._read_arena_cell_params()
         self.arena_rnd = np.random.RandomState(seed=self.params['Arena']['random seed'])
         
         self.arena_size = self.params['Arena']['arena size']
@@ -91,7 +92,7 @@ class Arena(object):
         with open(self.params_filepath, 'r') as f:
             fparams = yaml.load(f, Loader=yaml.FullLoader)           
             self.params['Arena'] = fparams['Arena']
-    def _read_arena_cellular_params(self):
+    def _read_arena_cell_params(self):
         self.params['Spatial'] = {}
         with open(self.params_filepath, 'r') as f:
             fparams = yaml.load(f, Loader=yaml.FullLoader)
@@ -107,15 +108,16 @@ class Arena(object):
             self.cell_information[population_name]['ncells'] = current_population['ncells']
             somatic_positions = generate_soma_positions(current_population['ncells'])
 
+            ncells = current_population['ncells']
             self.cell_information[population_name]['cell info'] = {}
-            for gid in range(current_population['ncells']):
+            for gid in range(ncells):
                 self.cell_information[population_name]['cell info'][gid] = {}
                 self.cell_information[population_name]['cell info'][gid]['soma position'] = somatic_positions[gid]
 
             if 'place' in current_population:
                 self.cell_information[population_name]['spatial type'] = 'place'
                 field_centers = soma_positions_to_field_center(somatic_positions, self.arena_size)
-                for gid in range(current_population['ncells']):
+                for gid in range(int(self.pc.id()), ncells, int(self.pc.nhost())):
                     self.cell_information[population_name]['cell info'][gid]['field center'] = field_centers[gid]
 
 
@@ -123,26 +125,22 @@ class Arena(object):
                 min_rate  = current_population['place']['min rate']
                 diameter  = current_population['place']['diameter']
                 place_firing_rates = generate_place_firing_maps(field_centers, peak_rate, min_rate, diameter, self.arena_map)
-                for gid in range(current_population['ncells']):
+                for gid in range(int(self.pc.id()), ncells, int(self.pc.nhost())):
                     self.cell_information[population_name]['cell info'][gid]['firing rate'] = place_firing_rates[gid]
-                    
-                    
                     
             elif 'grid' in current_population:
                 self.cell_information[population_name]['spatial type'] = 'grid'
                 field_centers = soma_positions_to_field_center(somatic_positions, self.arena_size)
-                for gid in range(current_population['ncells']):
+                for gid in range(int(self.pc.id()), ncells, int(self.pc.nhost())):
                     self.cell_information[population_name]['cell info'][gid]['field center'] = field_centers[gid]
-
 
                 peak_rate = current_population['grid']['peak rate']
                 min_rate  = current_population['grid']['min rate']
                 diameter  = current_population['grid']['diameter']
                 gap       = current_population['grid']['gap']
                 
-                
                 grid_firing_rates = generate_grid_firing_maps(field_centers, peak_rate, min_rate, diameter, gap, self.arena_map)
-                for gid in range(current_population['ncells']):
+                for gid in range(int(self.pc.id()), ncells, int(self.pc.nhost())):
                     self.cell_information[population_name]['cell info'][gid]['firing rate'] = grid_firing_rates[gid]
             
             
@@ -179,17 +177,17 @@ class Arena(object):
          
         population_info = self.cell_information[population]
         ncells = population_info['ncells']
-        gids   = np.arange(ncells)
+        gids   = range(int(self.pc.id()), ncells, int(self.pc.nhost()))
         
         nfr      = self.params['Spatial'][population]['noise']['min rate']
         noise_fr = [nfr for _ in range(len(self.arena_map))]
-        firing_rates = []
+        firing_rates = {}
         for gid in gids:
             try:
                 fr = population_info['cell info'][gid]['firing rate']
             except:
                 fr = noise_fr
-            firing_rates.append(fr)
+            firing_rates[gid] = fr
                 
         #self.arena_size, self.bin_size 
         mouse_speed = self.params['Arena']['mouse speed']
@@ -206,7 +204,7 @@ class Arena(object):
             self.random_cue_locs = np.arange(len(self.cued_positions))
             self.arena_rnd.shuffle(self.random_cue_locs)
             print(self.random_cue_locs)
-        for (gid, fr) in enumerate(firing_rates):
+        for (gid, fr) in firing_rates.items():
             current_full_fr = []
             online_number = 0
             for n in range(nlaps):
@@ -404,12 +402,28 @@ class WiringDiagram(object):
                 
                 if dst_pop_id not in self.params['external connectivity'][src_id]: continue
                 convergence = self.params['external connectivity'][src_id][dst_pop_id]['probability']
-                if dst_pop_id in place_information and src_id in external_place_ids:
-                    dst_gids_to_connect_to   = place_information[dst_pop_id]['place']
-                elif dst_pop_id in cue_information and src_id in external_cue_ids:
-                    dst_gids_to_connect_to   = cue_information[dst_pop_id]['not place']
-                else: dst_gids_to_connect_to = np.arange(ndst)
 
+                place_connection_flag = dst_pop_id in place_information and src_id in external_place_ids
+                cue_connection_flag = dst_pop_id in cue_information and src_id in external_cue_ids
+
+                dst_gids_to_connect_to = []
+                
+                if place_connection_flag:
+                    dst_gids_to_connect_to.append(place_information[dst_pop_id]['place'])
+                    
+                if cue_connection_flag:
+                    dst_gids_to_connect_to.append(cue_information[dst_pop_id]['not place'])
+
+                if not (place_connection_flag or cue_connection_flag):
+                    dst_gids_to_connect_to.append(np.arange(ndst))
+
+                dst_gids_to_connect_to = np.concatenate(dst_gids_to_connect_to)
+
+                print(f"src_id = {src_id} dst_pop_id = {dst_pop_id} "
+                      f"external_place_ids = {external_place_ids} external_cue_ids = {external_cue_ids} "
+                      f"src_id in external_cue_ids = {src_id in external_cue_ids} "
+                      f"src_id in external_place_ids = {src_id in external_place_ids} ")
+                
                 if dst_pop_id == 0 and src_id < 102: # For MF and MEC connections 0.0015
                     am = self.create_adjacency_matrix(src_pos, dst_pos, nsrc, ndst, convergence, self.external_con_rnd, 
                                                       inv_func=('exp', 0.00075), valid_gids=dst_gids_to_connect_to, src_id=src_id)

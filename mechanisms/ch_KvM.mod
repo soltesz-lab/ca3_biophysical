@@ -28,7 +28,7 @@ NEURON {
 	THREADSAFE SUFFIX ch_KvM
 	USEION k READ ek WRITE ik
         RANGE  gbar,ik, mye, myi
-      GLOBAL inf, tau
+      RANGE inf, tau
 }
 
 STATE {

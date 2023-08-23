@@ -11,7 +11,7 @@ NEURON {
         SUFFIX Ksoma
         USEION k READ ek WRITE ik
         RANGE gksoma, ik
-        GLOBAL ninf, nexp, ntau
+        RANGE ninf, nexp, ntau
 }
  
 INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}

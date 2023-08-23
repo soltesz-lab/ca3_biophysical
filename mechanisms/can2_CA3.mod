@@ -32,7 +32,7 @@ NEURON {
 	SUFFIX can_CA3
 	USEION ca READ cai,cao WRITE ica
         RANGE gcanbar, ica, gcan       
-        GLOBAL hinf,minf,taum,tauh
+        RANGE hinf,minf,taum,tauh
 }
 
 STATE {

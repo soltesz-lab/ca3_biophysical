@@ -6,7 +6,7 @@ NEURON {
 	USEION na READ ena WRITE ina
 	NONSPECIFIC_CURRENT Ir
         RANGE gnabar,b,vhalf,vhalfn,vhalfl,vvh
-        GLOBAL ninf,linf,taul,taun,rinf,taur,inf
+        RANGE ninf,linf,taul,taun,rinf,taur,inf
 }
 
 UNITS {

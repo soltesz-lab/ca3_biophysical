@@ -95,8 +95,8 @@ NEURON {
 	POINTER pre
 	RANGE C, R, G, g, gmax, lastrelease
 	NONSPECIFIC_CURRENT i
-	GLOBAL Cmax, Cdur, Prethresh, Deadtime
-	GLOBAL K1, K2, K3, K4, KD, Erev
+	RANGE Cmax, Cdur, Prethresh, Deadtime
+	RANGE K1, K2, K3, K4, KD, Erev
 }
 UNITS {
 	(nA) = (nanoamp)

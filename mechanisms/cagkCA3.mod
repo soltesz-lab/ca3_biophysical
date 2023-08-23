@@ -19,7 +19,7 @@ NEURON {
 	USEION ca READ cai
 	USEION k READ ek WRITE ik
 	RANGE gkbar, ik
-	GLOBAL oinf, tau
+	RANGE oinf, tau
 }
 
 UNITS {

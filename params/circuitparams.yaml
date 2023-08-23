@@ -248,7 +248,7 @@ Circuit:
 
     external connectivity:
         100: # Mossy Fiber from DG
-            0: 
+            0: # PYR 
                 probability: 16 # 8
                 synapse:
                     type: ['STDPE2', 'NMDA']
@@ -257,7 +257,7 @@ Circuit:
                     ptau: 17.0
                     dtau: 34.0
                     compartments: ['lucidum', 'oriensProximal']
-            1:
+            1: # PVBC
                 probability: 412 #336
                 synapse:
                     type: 'AMPA'
@@ -266,7 +266,7 @@ Circuit:
                     tau2: 6.3
                     e: 0.
                     compartments: ['radM1', 'radM2', 'radT1', 'radT2']
-            2:
+            2: # AAC
                 probability: 232
                 synapse:
                     type: 'AMPA'
@@ -275,7 +275,7 @@ Circuit:
                     tau2: 6.3
                     e: 0.
                     compartments: ['radM1', 'radM2', 'radT1', 'radT2']
-            3:
+            3: # BiS
                 probability: 322
                 synapse:
                     type: 'AMPA'
@@ -284,7 +284,7 @@ Circuit:
                     tau2: 6.3
                     e: 0.
                     compartments: ['radM1', 'radM2', 'radT1', 'radT2']
-            4:
+            4: # OLM
                 probability: 56
                 synapse: 
                     type: 'AMPA'
@@ -293,7 +293,7 @@ Circuit:
                     tau2: 6.3
                     e: 0.
                     compartments: ['dend1', 'dend2']
-            5:
+            5: # ISCCR
                 probability: 139
                 synapse:
                     type: 'AMPA'
@@ -302,7 +302,7 @@ Circuit:
                     tau2: 6.3
                     e: 0.
                     compartments: ['radProx1', 'radProx2', 'radMed1', 'radMed2']
-            6:
+            6: # ISCCK
                 probability: 222 #111
                 synapse:
                     type: 'AMPA'
@@ -312,7 +312,7 @@ Circuit:
                     e: 0.
                     compartments: ['radProx1', 'radProx2', 'radMed1', 'radMed2']
 
-        101:
+        101: # MEC
             0: 
                 probability: 10
                 synapse:
@@ -365,7 +365,7 @@ Circuit:
                     tau2: 6.3
                     e: 0.
                     compartments: ['lmM1', 'lmM2']
-        102:
+        102: # LEC
             0: 
                 probability: 8
                 synapse:
@@ -420,7 +420,7 @@ Circuit:
                     tau2: 6.3
                     e: 0.
                     compartments: ['lmt1', 'lmt2']
-        103:
+        103: # Background
             0:
                 probability: 80
                 synapse:

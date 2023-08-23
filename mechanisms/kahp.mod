@@ -23,7 +23,7 @@ NEURON {
 	USEION k READ ek WRITE ik
         USEION ca READ cai
         RANGE gkahpbar,gkahp
-        GLOBAL inf,tau
+        RANGE inf,tau
 }
 
 STATE {

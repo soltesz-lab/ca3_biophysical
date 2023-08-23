@@ -7,7 +7,7 @@ NEURON {
 	SUFFIX cancr
 	USEION ca READ cai, eca WRITE ica 
     RANGE gcabar, ica, po
-	GLOBAL hinf, minf, s_inf
+	RANGE hinf, minf, s_inf
 }
 
 UNITS {

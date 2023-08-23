@@ -27,7 +27,7 @@ NEURON {
 	NONSPECIFIC_CURRENT i
 
 	RANGE g
-	GLOBAL total
+	RANGE total
 }
 
 UNITS {

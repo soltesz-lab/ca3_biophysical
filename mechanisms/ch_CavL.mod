@@ -49,7 +49,7 @@ NEURON {
 	USEION ca READ cai, cao, eca WRITE ica VALENCE 2 
     RANGE gmax, cai, ica, eca
  	RANGE myi, g
-    GLOBAL minf,mtau	: neither of these are thread safe
+    RANGE minf,mtau	: neither of these are thread safe
     THREADSAFE
 }
 
