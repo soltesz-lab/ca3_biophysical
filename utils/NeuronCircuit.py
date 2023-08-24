@@ -3,6 +3,7 @@ import numpy as np
 import yaml
 import os
 import sys
+import pickle
 
 from ca3pyr_dhh import ca3pyrcell
 from pvbc import PVBC
@@ -29,7 +30,6 @@ class Circuit(object):
     def __init__(self, arena_params_filename, params_filename, internal_pop2id, external_pop2id, external_spike_times, params_prefix='.'):
         self.pc = h.ParallelContext()
 
-        # TODO: perform I/O only on rank 0
         self.params_prefix = params_prefix
         self.cell_params = None
         self.arena_cells = None
@@ -39,24 +39,28 @@ class Circuit(object):
         self.internal_pop2id = internal_pop2id
         self.external_pop2id = external_pop2id
 
+        self.ctype_offsets = {}
         self.neurons  = {}
         self.netstims = {}
         self.external_spike_times = {}
-
-        self.ctype_offsets = {}
+        self.external_spike_time_recs = {}
+        self.external_spike_gid_recs = {}
         
         self.lfp = None
 
         self.external_spike_times = external_spike_times
 
     def _read_params(self, params_prefix, params_filename, arena_params_filename):
-        with open(os.path.join(params_prefix, params_filename), 'r') as f:
-            fparams = yaml.load(f, Loader=yaml.FullLoader)
-            
-            self.cell_params = fparams['Circuit']
-        with open(os.path.join(params_prefix, arena_params_filename), 'r') as f:
-            fparams = yaml.load(f, Loader=yaml.FullLoader)           
-            self.arena_cells = fparams['Arena Cells']
+        if self.pc.id() == 0:
+            with open(os.path.join(params_prefix, params_filename), 'r') as f:
+                fparams = yaml.load(f, Loader=yaml.FullLoader)
+                self.cell_params = fparams['Circuit']
+            with open(os.path.join(params_prefix, arena_params_filename), 'r') as f:
+                fparams = yaml.load(f, Loader=yaml.FullLoader)           
+                self.arena_cells = fparams['Arena Cells']
+        self.pc.barrier()
+        self.cell_params = self.pc.py_broadcast(self.cell_params, 0)
+        self.arena_cells = self.pc.py_broadcast(self.arena_cells, 0)
             
             
     def build_cells(self):
@@ -64,6 +68,15 @@ class Circuit(object):
         cell_types   = self.cell_params['cells']
         cell_numbers = self.cell_params['ncells']
         ctype_offset = 0
+
+        ca3pyr_props = None
+        if self.pc.id() == 0:
+            ca3pyr_props_path = os.path.join(self.params_prefix, 'CA3_Bakerb_marascoProp.pickle')
+            with open(ca3pyr_props_path, "rb") as f:
+                ca3pyr_props = pickle.load(f, encoding='latin1')
+        self.pc.barrier()
+        ca3pyr_props = self.pc.py_broadcast(ca3pyr_props, 0)
+        
         for (i,ctype) in enumerate(cell_types):
             cidx = self.internal_pop2id[ctype]
             ncells = cell_numbers[i]
@@ -72,7 +85,7 @@ class Circuit(object):
             for ctype_id in range(int(self.pc.id()), ncells, int(self.pc.nhost())):
                 gid = ctype_id + ctype_offset
                 if ctype == 'ca3pyr':
-                     cell = ca3pyrcell(gid, 'B', os.path.join(self.params_prefix, 'CA3_Bakerb_marascoProp.pickle'))
+                     cell = ca3pyrcell(gid, 'B', ca3pyr_props)
                 elif ctype == 'pvbc':
                     cell = PVBC(gid)
                 elif ctype == 'axoaxonic':
@@ -105,6 +118,8 @@ class Circuit(object):
             ncells = self.arena_cells[ctype]['ncells']
             self.ctype_offsets[cidx] = ctype_offset
             self.neurons[cidx] = {}
+            self.external_spike_time_recs[cidx] = h.Vector()
+            self.external_spike_gid_recs[cidx] = h.Vector()
             for ctype_id in range(int(self.pc.id()), ncells, int(self.pc.nhost())):
                 gid = ctype_id + ctype_offset
                 if ctype == 'MF':
@@ -125,10 +140,12 @@ class Circuit(object):
                     stimcell.play(vec)
                 else:
                     raise RuntimeError(f"Unknown cell type {ctype}")
-                self.neurons[cidx][ctype_id] = cell
+                self.neurons[cidx][ctype_id] = stimcell
                 self.pc.set_gid2node(gid, self.pc.id())
                 spike_detector = h.NetCon(stimcell, None)
                 self.pc.cell(gid, spike_detector) # Associate the cell with this host and gid
+                self.pc.spike_record(gid, self.external_spike_time_recs[cidx],
+                                     self.external_spike_gid_recs[cidx])
             ctype_offset += ncells
                 
                 
@@ -182,7 +199,6 @@ class Circuit(object):
         src_offset = self.ctype_offsets[src_pop_id]
         dst_population_ids = list(external_adj_matrices.keys())
         for dst_pop_id in dst_population_ids:
-            if (src_pop_id, dst_pop_id) not in self.netstims: self.netstims[(src_pop_id, dst_pop_id)] = {}
             adj_matrix = external_adj_matrices[dst_pop_id]
             
             dst_neurons = self.neurons[dst_pop_id] # PYR to PVBC, for example
@@ -190,8 +206,6 @@ class Circuit(object):
             for i in range(adj_matrix.shape[0]):
                 src_gid = i + src_offset
                 for j in range(adj_matrix.shape[1]):
-                    if (i,j) not in self.netstims[(src_pop_id, dst_pop_id)]:
-                        self.netstims[(src_pop_id, dst_pop_id)][(i,j)] = []
                     nconnections = adj_matrix[i,j]
                     if nconnections == 0: continue
                     compartments     = synapse_information['compartments']

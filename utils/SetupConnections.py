@@ -89,14 +89,25 @@ class Arena(object):
 
     def _read_arena_params(self):
         self.params['Arena'] = {}
-        with open(self.params_filepath, 'r') as f:
-            fparams = yaml.load(f, Loader=yaml.FullLoader)           
-            self.params['Arena'] = fparams['Arena']
+        arena_params = None
+        if self.pc.id() == 0:
+            with open(self.params_filepath, 'r') as f:
+                fparams = yaml.load(f, Loader=yaml.FullLoader)
+                arena_params = fparams['Arena']
+                self.params['Arena'] = arena_params
+        self.pc.barrier()
+        self.params['Arena'] = self.pc.py_broadcast(arena_params, 0)
+            
     def _read_arena_cell_params(self):
         self.params['Spatial'] = {}
-        with open(self.params_filepath, 'r') as f:
-            fparams = yaml.load(f, Loader=yaml.FullLoader)
-            self.params['Spatial'] = fparams['Arena Cells']
+        arena_cell_params = None
+        if self.pc.id() == 0:
+            with open(self.params_filepath, 'r') as f:
+                fparams = yaml.load(f, Loader=yaml.FullLoader)
+                arena_cell_params = fparams['Arena Cells']
+                self.params['Spatial'] = arena_cell_params
+        self.pc.barrier()
+        self.params['Spatial'] = self.pc.py_broadcast(arena_cell_params, 0)
           
     def generate_population_firing_rates(self):
         
@@ -289,6 +300,7 @@ def place_field_fr(center, spatial_bins, max_fr, diameter):
 class WiringDiagram(object):
     
     def __init__(self, params_filepath, place_information):
+        self.pc = h.ParallelContext()
         self.params = None
         self._read_params_filepath(params_filepath)
         self.internal_con_rnd = np.random.RandomState(seed=self.params['internal seed'])
@@ -457,9 +469,15 @@ class WiringDiagram(object):
         return pos
         
     def _read_params_filepath(self, params_filepath):
-        with open(params_filepath, 'r') as f:
-            fparams = yaml.load(f, Loader=yaml.FullLoader)           
-            self.params = fparams['Circuit']
+        self.params = {}
+        circuit_params = None
+        if self.pc.id() == 0:
+            with open(params_filepath, 'r') as f:
+                fparams = yaml.load(f, Loader=yaml.FullLoader)
+                circuit_params = fparams['Circuit']
+                self.params = circuit_params
+        self.pc.barrier()
+        self.params = self.pc.py_broadcast(circuit_params, 0)
 
     def create_adjacency_matrix(self, src_coordinates, dst_coordinates, nsrc, ndst, convergence, rnd, 
                                 inv_func=None, same_pop=False, valid_gids=None, src_id=None):

@@ -8,6 +8,7 @@ import numpy as np
 from pprint import pprint
 import sys, os
 import pickle as pkl
+from collections import defaultdict
 
 from os.path import expanduser
 home = expanduser("~")
@@ -33,7 +34,7 @@ delay = 500.
 dt = 0.1
 
 params_path = os.path.join(model_home, 'params')
-ar = Arena(os.path.join(params_path, 'arenaparams.yaml'))
+ar = Arena(os.path.join(params_path, 'arenaparams_test.yaml'))
 ar.generate_population_firing_rates()
 ar.generate_cue_firing_rates('LEC', 1.0)
 
@@ -125,7 +126,7 @@ sys.stdout.flush()
 
 circuit = Circuit(params_prefix=params_path, 
                   params_filename='circuitparams.yaml',
-                  arena_params_filename='arenaparams.yaml', 
+                  arena_params_filename='arenaparams_test.yaml', 
                   internal_pop2id=diagram.pop2id, 
                   external_pop2id=diagram.external_pop2id, 
                   external_spike_times = {100: mf_spike_times,
@@ -149,6 +150,16 @@ circuit.build_external_netcons(103, diagram.external_adj_matrices[103])
 import time
 
 
+def get_ext_population_spikes(c,pop_id):
+    spike_vec_dict = defaultdict(list)
+    spike_times_vec = c.external_spike_time_recs[pop_id]
+    spike_gids_vec  = c.external_spike_gid_recs[pop_id]
+    for spike_t, spike_gid in zip(spike_times_vec, spike_gids_vec):
+        spike_gid = int(spike_gid)
+        spike_vec_dict[spike_gid].append(spike_t)
+    return spike_vec_dict
+
+
 def get_population_voltages(c,pop_id):
     v_vec_dict = {}
     for cid, cell in c.neurons[pop_id].items():
@@ -169,6 +180,7 @@ exc_v_vecs     = get_population_voltages(circuit, 0)
 # isccr_v_vecs = get_population_voltages(5)
 # iscck_v_vecs = get_population_voltages(6)
 
+
 t_vec = h.Vector()  # Time stamp vector
 t_vec.record(h._ref_t)
 
@@ -181,7 +193,7 @@ h.tstop =  time_for_single_lap * nlaps + 500
 pc = circuit.pc
 
 if pc.id() == 0:
-    print(f'starting simulation until {h.tstop} ms..')
+    print(f'starting simulation for {nlaps} lap(s) until {h.tstop} ms..')
     sys.stdout.flush()
     
 simtime = SimTimeEvent(pc, h.tstop, 8.0, 10, 0)
@@ -200,13 +212,15 @@ if pc.id() == 0:
 
 def save_parameters(pc, circ, save_filepath):
     complete_weights = {}
-    for population_gid in circ.neurons.keys():
-        if population_gid == 'Septal': continue
-        complete_weights[str(population_gid)] = None
+    for population_id in circ.neurons.keys():
+        if population_id == 'Septal': continue
+        complete_weights[str(population_id)] = None
         cell_info_to_save = []
-        population_info = circ.neurons[population_gid]
+        population_info = circ.neurons[population_id]
         for cell_gid in population_info.keys():
             cell_info = population_info[cell_gid]
+            if not hasattr(cell_info, 'internal_netcons'):
+                continue
             for (presynaptic_id, nc, _) in cell_info.internal_netcons:
                 for netcon in nc:
                     cell_info_to_save.append(netcon.weight[0])
@@ -221,7 +235,7 @@ def save_parameters(pc, circ, save_filepath):
                         if len(netcon.weight) == 3: 
                             cell_info_to_save.append(netcon.weight[1])
                         else: cell_info_to_save.append(0.0)
-        complete_weights[str(population_gid)] = cell_info_to_save
+        complete_weights[str(population_id)] = cell_info_to_save
         #print(len(cell_info_to_save))
 
     all_complete_weights = pc.py_gather(complete_weights, 0)
@@ -233,8 +247,6 @@ def save_parameters(pc, circ, save_filepath):
         np.savez(save_filepath, **complete_weights)
         
     pc.barrier()
-        
-save_parameters(pc, circuit, f"params/0801-cue-ee-ei-nlaps-{nlaps}-dt-zerodot1-scale-2-v1.npz")
 
 def save_v_vecs(pc, save_filepath, v_vecs):
 
@@ -248,7 +260,25 @@ def save_v_vecs(pc, save_filepath, v_vecs):
 
     pc.barrier()
 
+def save_spike_vecs(pc, save_filepath, spike_time_dict):
+
+    all_spike_dicts = pc.py_gather(spike_time_dict, 0)
+
+    if pc.id() == 0:
+        spike_dict = {}
+        for d in all_spike_dicts:
+            spike_dict.update([(str(k),v) for (k,v) in d.items()])
+        np.savez(save_filepath, **spike_dict)
+
+    pc.barrier()
+
+ext_spikes_MEC  = get_ext_population_spikes(circuit, 101)
+
+save_spike_vecs(pc, f"data/spikes_MEC_0801-cue-ee-ei-nlaps-{nlaps}", ext_spikes_MEC)
+
 save_v_vecs(pc, f"data/v_vecs_0801-cue-ee-ei-nlaps-{nlaps}", exc_v_vecs)
+        
+save_parameters(pc, circuit, f"params/0801-cue-ee-ei-nlaps-{nlaps}-dt-zerodot1-scale-2-v1.npz")
 
 pc.runworker()
 pc.done()

@@ -3,7 +3,7 @@ import numpy as np
 import pickle
         
 class ca3pyrcell(object):
-    def __init__(self, gid, ctype, props_filename):
+    def __init__(self, gid, ctype, props):
         self.gid   = gid
         self.ctype = ctype
         self.spike_threshold = -42.0
@@ -18,7 +18,7 @@ class ca3pyrcell(object):
         self.lacunosumLEC = None
                 
         self.generate_morphology()
-        self.generate_biophysics(ctype, props_filename)
+        self.generate_biophysics(ctype, props)
         
         self.synGroups = None
         self.generate_synapses()
@@ -66,7 +66,7 @@ class ca3pyrcell(object):
         
     
     
-    def generate_biophysics(self, ctype, props_filename):
+    def generate_biophysics(self, ctype, props):
         
         ghd   = 0.00001
         gna   = 0.022
@@ -183,9 +183,9 @@ class ca3pyrcell(object):
         self.axon.sh_kdr_CA3 = 24
         self.axon.sh_kap_CA3 = 0
         
-        
-        with open(props_filename, "rb") as f:
-            props = pickle.load(f, encoding='latin1')
+        if isinstance(props, str):
+            with open(props, "rb") as f:
+                props = pickle.load(f, encoding='latin1')
         
         self.oriensProximal.nseg = props['oriensProximal']['nseg']
         self.oriensProximal.L = props['oriensProximal']['L']
