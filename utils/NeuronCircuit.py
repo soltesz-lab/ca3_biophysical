@@ -250,10 +250,10 @@ class Circuit(object):
 
     def get_cell_spikes(self, group_id):
         neurons = self.neurons[group_id]
-        spike_times = []
+        spike_times = {}
         for k in list(neurons.keys()):
             cell = neurons[k]
-            spike_times.append(list(cell.spike_times))
+            spike_times[int(cell.gid)] = list(cell.spike_times)
         return spike_times
     
     def record_lfp(self, population_ids):

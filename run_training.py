@@ -93,7 +93,7 @@ cue_ids = diagram.place_information[0]['not place']
 
 external_kwargs = {}
 external_kwargs['place information'] = diagram.place_information
-external_kwargs['external place ids'] = [100, 101]
+external_kwargs['external place ids'] = [100, 101, 102]
 external_kwargs['cue information'] = diagram.place_information
 external_kwargs['external cue ids'] = [100, 101, 102]
 
@@ -149,6 +149,10 @@ circuit.build_external_netcons(103, diagram.external_adj_matrices[103])
 
 import time
 
+
+def get_cell_population_spikes(c,pop_id):
+    spike_times_dict = c.get_cell_spikes(pop_id)
+    return spike_times_dict
 
 def get_ext_population_spikes(c,pop_id):
     spike_vec_dict = defaultdict(list)
@@ -283,6 +287,13 @@ save_spike_vecs(pc, f"data/ext_spikes_0801-cue-ee-ei-nlaps-{nlaps}",
                 ext_spikes_MEC,
                 ext_spikes_LEC,
                 ext_spikes_Bk)
+
+cell_spikes_PC    = get_cell_population_spikes(circuit,0)
+cell_spikes_PVBC  = get_cell_population_spikes(circuit,1)
+
+save_spike_vecs(pc, f"data/cell_spikes_0801-cue-ee-ei-nlaps-{nlaps}",
+                cell_spikes_PC,
+                cell_spikes_PVBC)
                 
 
 save_v_vecs(pc, f"data/v_vecs_0801-cue-ee-ei-nlaps-{nlaps}", exc_v_vecs)

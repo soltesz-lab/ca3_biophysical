@@ -81,7 +81,6 @@ def baks(spktimes, time, a=1.5, b=None):
 def external_weight_change(circuit, src_id, dst_id):
     weight_before, weight_after = [], []
     for key in circuit.neurons[dst_id].keys(): # exc population
-        if key >= 130: continue
         if src_id not in circuit.neurons[dst_id][key].external_netcons: continue
         for ncs in circuit.neurons[dst_id][key].external_netcons[src_id]: # receiving from MEC cells
             weight_before.append(ncs[1][0].weight[0])
