@@ -260,21 +260,30 @@ def save_v_vecs(pc, save_filepath, v_vecs):
 
     pc.barrier()
 
-def save_spike_vecs(pc, save_filepath, spike_time_dict):
+def save_spike_vecs(pc, save_filepath, *spike_time_dicts):
 
-    all_spike_dicts = pc.py_gather(spike_time_dict, 0)
+    all_spike_dicts = pc.py_gather(spike_time_dicts, 0)
 
     if pc.id() == 0:
         spike_dict = {}
-        for d in all_spike_dicts:
-            spike_dict.update([(str(k),v) for (k,v) in d.items()])
+        for ds in all_spike_dicts:
+            for d in ds:
+                spike_dict.update([(str(k),v) for (k,v) in d.items()])
         np.savez(save_filepath, **spike_dict)
 
     pc.barrier()
 
+ext_spikes_MF   = get_ext_population_spikes(circuit, 100)
 ext_spikes_MEC  = get_ext_population_spikes(circuit, 101)
+ext_spikes_LEC  = get_ext_population_spikes(circuit, 102)
+ext_spikes_Bk   = get_ext_population_spikes(circuit, 103)
 
-save_spike_vecs(pc, f"data/spikes_MEC_0801-cue-ee-ei-nlaps-{nlaps}", ext_spikes_MEC)
+save_spike_vecs(pc, f"data/ext_spikes_0801-cue-ee-ei-nlaps-{nlaps}",
+                ext_spikes_MF,
+                ext_spikes_MEC,
+                ext_spikes_LEC,
+                ext_spikes_Bk)
+                
 
 save_v_vecs(pc, f"data/v_vecs_0801-cue-ee-ei-nlaps-{nlaps}", exc_v_vecs)
         

@@ -315,11 +315,14 @@ class WiringDiagram(object):
         self.pop2id = {pops[i]: i for i in range(len(pops))}
         self.pops   = pops
         self.place_information = {}
-        
+
+        ctype_offset = 0
         for (i, pop) in enumerate(pops):
             self.wiring_information[pop] = {}
             self.wiring_information[pop]['ncells'] = ncells[i]
             self.wiring_information[pop]['cell info'] = {}
+            self.wiring_information[pop]['ctype offset'] = ctype_offset
+            ctype_offset += ncells[i]
             
             for gid in np.arange(ncells[i]):
                 self.wiring_information[pop]['cell info'][gid] = {}
@@ -398,10 +401,19 @@ class WiringDiagram(object):
         
         external_pops = list(external_information.keys())
         external_ids  = [external_information[pop]['id'] for pop in external_pops]
-        self.external_pop2id = {pop:i for (pop,i) in list(zip(external_pops, external_ids))}
+
+        ctype_offset = 0
+        for pop in self.wiring_information.keys():
+            if ctype_offset < self.wiring_information[pop]['ctype offset']:
+                ctype_offset = self.wiring_information[pop]['ctype offset']
         
+        self.external_pop2id = {pop:i for (pop,i) in list(zip(external_pops, external_ids))}
+
+        self.external_information = external_information
         self.external_adj_matrices = {}
         for src_id,src_pop in list(zip(external_ids,external_pops)):
+            self.external_information[src_pop]['ctype offset'] = ctype_offset
+            ctype_offset += self.external_information[src_pop]['ncells']
             self.external_adj_matrices[src_id] = {}
             for dst_pop in self.pops:
                 dst_pop_id = self.pop2id[dst_pop]

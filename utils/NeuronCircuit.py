@@ -41,7 +41,6 @@ class Circuit(object):
 
         self.ctype_offsets = {}
         self.neurons  = {}
-        self.netstims = {}
         self.external_spike_times = {}
         self.external_spike_time_recs = {}
         self.external_spike_gid_recs = {}
@@ -144,7 +143,8 @@ class Circuit(object):
                 self.pc.set_gid2node(gid, self.pc.id())
                 spike_detector = h.NetCon(stimcell, None)
                 self.pc.cell(gid, spike_detector) # Associate the cell with this host and gid
-                self.pc.spike_record(gid, self.external_spike_time_recs[cidx],
+                self.pc.spike_record(gid,
+                                     self.external_spike_time_recs[cidx],
                                      self.external_spike_gid_recs[cidx])
             ctype_offset += ncells
                 
@@ -241,7 +241,7 @@ class Circuit(object):
 
                     for con_num in range(nconnections):
                         compartment = chosen_compartments[con_num]
-                        ## TODO: provide source gids
+                        # TODO: provide source gids
                         ncs = create_netcon(self.pc, 'Septal', dst_pop_id,
                                             self.neurons['Septal'][i],
                                             self.neurons[dst_pop_id][j], 
