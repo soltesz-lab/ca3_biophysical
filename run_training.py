@@ -218,7 +218,6 @@ def save_parameters(pc, circ, save_filepath):
     complete_weights = {}
     for population_id in circ.neurons.keys():
         if population_id == 'Septal': continue
-        complete_weights[str(population_id)] = None
         cell_info_to_save = []
         population_info = circ.neurons[population_id]
         for cell_gid in population_info.keys():
@@ -239,8 +238,7 @@ def save_parameters(pc, circ, save_filepath):
                         if len(netcon.weight) == 3: 
                             cell_info_to_save.append(netcon.weight[1])
                         else: cell_info_to_save.append(0.0)
-        complete_weights[str(population_id)] = cell_info_to_save
-        #print(len(cell_info_to_save))
+            complete_weights[str(cell_gid)] = cell_info_to_save
 
     all_complete_weights = pc.py_gather(complete_weights, 0)
 
