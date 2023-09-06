@@ -1,5 +1,4 @@
 import numpy as np
-from past.utils import old_div
 from scipy.signal import spectrogram, hilbert, butter, lfilter, medfilt
 
 #### circuit I/O

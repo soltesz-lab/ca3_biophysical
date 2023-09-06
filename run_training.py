@@ -12,9 +12,9 @@ from collections import defaultdict
 
 from os.path import expanduser
 home = expanduser("~")
-model_home = os.path.join(home, 'src/model/ca3_biophysical/')
-sys.path.append(os.path.join(home, 'src/model/ca3_biophysical/utils'))
-sys.path.append(os.path.join(home, 'src/model/ca3_biophysical/cells'))
+model_home = os.path.join(home, 'model/ca3_biophysical/')
+sys.path.append(os.path.join(home, 'model/ca3_biophysical/utils'))
+sys.path.append(os.path.join(home, 'model/ca3_biophysical/cells'))
 sys.path.append(os.path.join(home, 'bin/nrnpython3/lib/python'))
 
 from neuron import h
@@ -34,7 +34,7 @@ delay = 500.
 dt = 0.1
 
 params_path = os.path.join(model_home, 'params')
-ar = Arena(os.path.join(params_path, 'arenaparams_test.yaml'))
+ar = Arena(os.path.join(params_path, 'arenaparams.yaml'))
 ar.generate_population_firing_rates()
 ar.generate_cue_firing_rates('LEC', 1.0)
 
@@ -126,7 +126,7 @@ sys.stdout.flush()
 
 circuit = Circuit(params_prefix=params_path, 
                   params_filename='circuitparams.yaml',
-                  arena_params_filename='arenaparams_test.yaml', 
+                  arena_params_filename='arenaparams.yaml', 
                   internal_pop2id=diagram.pop2id, 
                   external_pop2id=diagram.external_pop2id, 
                   external_spike_times = {100: mf_spike_times,
@@ -252,7 +252,8 @@ def save_parameters(pc, circ, save_filepath):
 
 def save_v_vecs(pc, save_filepath, v_vecs):
 
-    all_v_vecs = pc.py_gather(v_vecs, 0)
+    v_vec_dict = { k: np.asarray(v, dtype=np.float32) for k,v in v_vecs.items() }
+    all_v_vecs = pc.py_gather(v_vec_dict, 0)
 
     if pc.id() == 0:
         v_vecs = {}
