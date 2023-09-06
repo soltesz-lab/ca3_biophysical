@@ -12,7 +12,7 @@ from collections import defaultdict
 
 from os.path import expanduser
 home = expanduser("~")
-model_home = os.path.join(home, 'model/ca3_biophysical/')
+model_home = os.path.join(home, 'src/model/ca3_biophysical/')
 sys.path.append(os.path.join(home, 'model/ca3_biophysical/utils'))
 sys.path.append(os.path.join(home, 'model/ca3_biophysical/cells'))
 sys.path.append(os.path.join(home, 'bin/nrnpython3/lib/python'))
