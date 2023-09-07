@@ -34,7 +34,7 @@ delay = 500.
 dt = 0.1
 
 params_path = os.path.join(model_home, 'params')
-ar = Arena(os.path.join(params_path, 'arenaparams.yaml'))
+ar = Arena(os.path.join(params_path, 'arenaparams_test.yaml'))
 ar.generate_population_firing_rates()
 ar.generate_cue_firing_rates('LEC', 1.0)
 
@@ -126,7 +126,7 @@ sys.stdout.flush()
 
 circuit = Circuit(params_prefix=params_path, 
                   params_filename='circuitparams.yaml',
-                  arena_params_filename='arenaparams.yaml', 
+                  arena_params_filename='arenaparams_test.yaml', 
                   internal_pop2id=diagram.pop2id, 
                   external_pop2id=diagram.external_pop2id, 
                   external_spike_times = {100: mf_spike_times,
@@ -250,6 +250,37 @@ def save_parameters(pc, circ, save_filepath):
         
     pc.barrier()
 
+    
+def save_connections(pc, circ, save_filepath):
+    complete_connections = {}
+    for population_id in circ.neurons.keys():
+        if population_id == 'Septal': continue
+        cell_info_to_save = []
+        population_info = circ.neurons[population_id]
+        for cell_gid in population_info.keys():
+            cell_info = population_info[cell_gid]
+            if not hasattr(cell_info, 'internal_netcons'):
+                continue
+            for (presynaptic_id, nc, _) in cell_info.internal_netcons:
+                for netcon in nc:
+                    cell_info_to_save.append(netcon.srcgid())
+            for external_id in cell_info.external_netcons.keys():
+                external_cell_info = cell_info.external_netcons[external_id]
+                for (idx,(presynaptic_gid, nc, compartment)) in enumerate(external_cell_info):
+                    for netcon in nc:
+                        cell_info_to_save.append(netcon.srcgid())
+            complete_connections[str(cell_gid)] = cell_info_to_save
+
+    all_complete_connections = pc.py_gather(complete_connections, 0)
+
+    if pc.id() == 0:
+        complete_connections = {}
+        for d in all_complete_connections:
+            complete_connections.update(d)
+        np.savez(save_filepath, **complete_connections)
+        
+    pc.barrier()
+
 def save_v_vecs(pc, save_filepath, v_vecs):
 
     v_vec_dict = { k: np.asarray(v, dtype=np.float32) for k,v in v_vecs.items() }
@@ -297,6 +328,8 @@ save_spike_vecs(pc, f"data/cell_spikes_0801-cue-ee-ei-nlaps-{nlaps}",
 
 save_v_vecs(pc, f"data/v_vecs_0801-cue-ee-ei-nlaps-{nlaps}", exc_v_vecs)
         
+save_connections(pc, circuit, f"data/0801-cue-ee-ei-connections.npz")
+
 save_parameters(pc, circuit, f"params/0801-cue-ee-ei-nlaps-{nlaps}-dt-zerodot1-scale-2-v1.npz")
 
 pc.runworker()
