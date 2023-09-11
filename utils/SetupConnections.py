@@ -5,6 +5,7 @@ import random
 import traceback
 import matplotlib.pyplot as plt
 from neuron import h
+import logging
 
 
 def place_field_fr(center, spatial_bins, max_fr, min_fr, diameter):
@@ -12,7 +13,8 @@ def place_field_fr(center, spatial_bins, max_fr, min_fr, diameter):
     fnc = max_fr * np.exp(-( (spatial_bins-center) / (c)) ** 2.)
     return fnc
 
-
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 def get_inhom_poisson_spike_times_by_thinning(rate, t, dt=0.02, delay=0.0, refractory=3., generator=None):
     """
@@ -121,29 +123,35 @@ class Arena(object):
 
             ncells = current_population['ncells']
             self.cell_information[population_name]['cell info'] = {}
-            for gid in range(ncells):
-                self.cell_information[population_name]['cell info'][gid] = {}
-                self.cell_information[population_name]['cell info'][gid]['soma position'] = somatic_positions[gid]
+            ctype_offset = 0
 
+            for idx in range(ncells):
+                gid = idx + ctype_offset
+                self.cell_information[population_name]['cell info'][gid] = {}
+                self.cell_information[population_name]['cell info'][gid]['soma position'] = somatic_positions[idx]
+                
             if 'place' in current_population:
                 self.cell_information[population_name]['spatial type'] = 'place'
                 field_centers = soma_positions_to_field_center(somatic_positions, self.arena_size)
-                for gid in range(int(self.pc.id()), ncells, int(self.pc.nhost())):
-                    self.cell_information[population_name]['cell info'][gid]['field center'] = field_centers[gid]
+                for idx in range(ncells):
+                    gid = idx + ctype_offset
+                    self.cell_information[population_name]['cell info'][gid]['field center'] = field_centers[idx]
 
 
                 peak_rate = current_population['place']['peak rate']
                 min_rate  = current_population['place']['min rate']
                 diameter  = current_population['place']['diameter']
                 place_firing_rates = generate_place_firing_maps(field_centers, peak_rate, min_rate, diameter, self.arena_map)
-                for gid in range(int(self.pc.id()), ncells, int(self.pc.nhost())):
-                    self.cell_information[population_name]['cell info'][gid]['firing rate'] = place_firing_rates[gid]
+                for idx in range(ncells):
+                    gid = idx + ctype_offset                    
+                    self.cell_information[population_name]['cell info'][gid]['firing rate'] = place_firing_rates[idx]
                     
             elif 'grid' in current_population:
                 self.cell_information[population_name]['spatial type'] = 'grid'
                 field_centers = soma_positions_to_field_center(somatic_positions, self.arena_size)
-                for gid in range(int(self.pc.id()), ncells, int(self.pc.nhost())):
-                    self.cell_information[population_name]['cell info'][gid]['field center'] = field_centers[gid]
+                for idx in range(ncells):
+                    gid = idx + ctype_offset                    
+                    self.cell_information[population_name]['cell info'][gid]['field center'] = field_centers[idx]
 
                 peak_rate = current_population['grid']['peak rate']
                 min_rate  = current_population['grid']['min rate']
@@ -151,9 +159,12 @@ class Arena(object):
                 gap       = current_population['grid']['gap']
                 
                 grid_firing_rates = generate_grid_firing_maps(field_centers, peak_rate, min_rate, diameter, gap, self.arena_map)
-                for gid in range(int(self.pc.id()), ncells, int(self.pc.nhost())):
-                    self.cell_information[population_name]['cell info'][gid]['firing rate'] = grid_firing_rates[gid]
-            
+                for idx in range(ncells):
+                    gid = idx + ctype_offset                    
+                    self.cell_information[population_name]['cell info'][gid]['firing rate'] = grid_firing_rates[idx]
+
+            ctype_offset += ncells
+
             
     def generate_cue_firing_rates(self, population, percent_cue, seed=1e9):
             rnd = np.random.RandomState(seed=int(seed))
@@ -303,9 +314,19 @@ class WiringDiagram(object):
         self.pc = h.ParallelContext()
         self.params = None
         self._read_params_filepath(params_filepath)
-        self.internal_con_rnd = np.random.RandomState(seed=self.params['internal seed'])
-        self.external_con_rnd = np.random.RandomState(seed=self.params['external seed'])
-        self.septal_con_rnd   = np.random.RandomState(seed=self.params['septal seed'])
+
+        internal_con_rnd = None
+        external_con_rnd = None
+        septal_con_rnd   = None
+
+        if int(self.pc.id()) == 0:
+            internal_con_rnd = np.random.RandomState(seed=self.params['internal seed'])
+            external_con_rnd = np.random.RandomState(seed=self.params['external seed'])
+            septal_con_rnd   = np.random.RandomState(seed=self.params['septal seed'])
+
+        self.internal_con_rnd = self.pc.py_broadcast(internal_con_rnd, 0)
+        self.external_con_rnd = self.pc.py_broadcast(external_con_rnd, 0)
+        self.septal_con_rnd   = self.pc.py_broadcast(septal_con_rnd, 0)
         
         place_ids   = place_information.get('place ids', [])
         place_fracs = place_information.get('place fracs', [])
@@ -322,46 +343,44 @@ class WiringDiagram(object):
             self.wiring_information[pop]['ncells'] = ncells[i]
             self.wiring_information[pop]['cell info'] = {}
             self.wiring_information[pop]['ctype offset'] = ctype_offset
-            ctype_offset += ncells[i]
-            
-            for gid in np.arange(ncells[i]):
+
+            for idx in range(ncells[i]):
+                gid = idx + ctype_offset
                 self.wiring_information[pop]['cell info'][gid] = {}
 
             place_gids = []
             if i in place_ids:
                 frac_place = place_fracs[place_ids.index(i)]
-                print('frac place', frac_place)
-                is_place = self.internal_con_rnd.choice([0,1],p=[1.0-frac_place, frac_place], size=(ncells[i],))
-                for (gid,ip) in enumerate(is_place):
+                is_place = None
+                if int(self.pc.id()) == 0:
+                    is_place = self.internal_con_rnd.choice([0,1],p=[1.0-frac_place, frac_place], size=(ncells[i],))
+                is_place = self.pc.py_broadcast(is_place, 0)
+                for (idx,ip) in enumerate(is_place):
+                    gid = idx + ctype_offset
                     self.wiring_information[pop]['cell info'][gid]['place'] = ip
-                    if ip: place_gids.append(gid)
-            else: place_gids = np.arange(ncells[i])
-           
-            
-            if ncells[i] < 10:
-                e1 = 1./(2.*ncells[i]) 
-                soma_coordinates = np.linspace(e1, 1.-e1, ncells[i])
+                    if ip:
+                        place_gids.append(gid)
             else:
-                soma_coordinates = np.linspace(0, 1, len(place_gids))
+                place_gids = list([ idx + ctype_offset for idx in range(ncells[i]) ])
             
-            for (didx,gid) in enumerate(place_gids):
-                self.wiring_information[pop]['cell info'][gid]['soma position'] = soma_coordinates[didx]
-            
-            notplace_gids = list( set(np.arange(ncells[i])) - set(place_gids) )
+            notplace_gids = set([idx + ctype_offset for idx in range(ncells[i])]) - set(place_gids)
             
             if i in place_ids:
                 self.place_information[i] = {}
-                self.place_information[i]['place']     = place_gids
-                self.place_information[i]['not place'] = notplace_gids
+                self.place_information[i]['place']     = list(place_gids)
+                self.place_information[i]['not place'] = list(notplace_gids)
             
+            soma_coordinates = np.linspace(0, 1, ncells[i])
+            for gid in place_gids:
+                didx = gid - ctype_offset
+                self.wiring_information[pop]['cell info'][gid]['soma position'] = soma_coordinates[didx]
             
             #left_behind_coordinates = self.internal_con_rnd.uniform(0., 1., size=(len(notplace_gids),))
-            left_behind_coordinates = np.linspace(0.1, 0.9, num=len(notplace_gids))
-            for (didx,gid) in enumerate(notplace_gids):
-                self.wiring_information[pop]['cell info'][gid]['soma position'] = left_behind_coordinates[didx]
-                
-                
+            for gid in notplace_gids:
+                didx = gid - ctype_offset
+                self.wiring_information[pop]['cell info'][gid]['soma position'] = soma_coordinates[didx]
  
+            ctype_offset += ncells[i]
                 
         
     def generate_internal_connectivity(self):
@@ -421,6 +440,7 @@ class WiringDiagram(object):
                     src_pos = self._get_soma_coordinates(external_information[src_pop]['cell info'])
                 except:
                     src_pos = None
+
                 dst_pos = self._get_soma_coordinates(self.wiring_information[dst_pop]['cell info'])
                 nsrc, ndst = external_information[src_pop]['ncells'], self.wiring_information[dst_pop]['ncells']
                 
@@ -493,12 +513,15 @@ class WiringDiagram(object):
 
     def create_adjacency_matrix(self, src_coordinates, dst_coordinates, nsrc, ndst, convergence, rnd, 
                                 inv_func=None, same_pop=False, valid_gids=None, src_id=None):
-        
+            
         if valid_gids is None: valid_gids = np.arange(ndst)
         adj_mat = np.zeros((nsrc, ndst), dtype='uint16')
         for d in range(ndst):
             if d not in valid_gids: continue
             if src_coordinates is not None and dst_coordinates is not None:
+
+                assert len(src_coordinates) == nsrc
+                assert len(dst_coordinates) == ndst
 
                 dst_coord = dst_coordinates[d]
                 distances = np.asarray([(dst_coord - src_coord)**2 for src_coord in src_coordinates])
@@ -517,7 +540,12 @@ class WiringDiagram(object):
                     effective_convergence = int(effective_convergence*0.75)
                 elif (src_id == 100 or src_id == 101) and (dst_coord < 0.1 or dst_coord > 0.90):
                     effective_convergence = int(effective_convergence*0.75)
-                presynaptic_gids = rnd.choice(np.arange(nsrc), p=pcon, replace=False, size=(int(effective_convergence),))
+                presynaptic_gids = None
+                if int(self.pc.id()) == 0:
+                    presynaptic_gids = rnd.choice(np.arange(nsrc), p=pcon, replace=False,
+                                                  size=(int(effective_convergence),))
+                presynaptic_gids = self.pc.py_broadcast(presynaptic_gids, 0)
+
 #                 if (src_id == 0) and (d in self.place_information[0]['place']):
 #                     if d > 0 and d - 1 not in presynaptic_gids:
 #                         presynaptic_gids[0] = d - 1
@@ -525,8 +553,11 @@ class WiringDiagram(object):
 #                         presynaptic_gids[-1] = d + 1                  
                 
             else:
-                effective_convergence = deepcopy(convergence) * self.params['scale'] 
-                presynaptic_gids = rnd.choice(np.arange(nsrc), replace=True, size=(effective_convergence,))
+                effective_convergence = deepcopy(convergence) * self.params['scale']
+                presynaptic_gids = None
+                if int(self.pc.id()) == 0:
+                    presynaptic_gids = rnd.choice(np.arange(nsrc), replace=True, size=(effective_convergence,))
+                presynaptic_gids = self.pc.py_broadcast(presynaptic_gids, 0)
                 
             for gid in presynaptic_gids:
                 adj_mat[gid,d] += 1
@@ -534,3 +565,4 @@ class WiringDiagram(object):
                 
     
     
+
