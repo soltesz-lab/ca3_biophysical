@@ -34,22 +34,12 @@ delay = 500.
 dt = 0.1
 
 params_path = os.path.join(model_home, 'params')
-ar = Arena(os.path.join(params_path, 'arenaparams.yaml'))
+ar = Arena(os.path.join(params_path, 'arenaparams_test.yaml'))
 ar.generate_population_firing_rates()
 ar.generate_cue_firing_rates('LEC', 1.0)
 
-print('generating spike times..')
-sys.stdout.flush()
 
 cued = True
-ar.generate_spike_times('MF', dt=dt, delay=delay)
-ar.generate_spike_times('MEC', dt=dt, delay=delay)
-ar.generate_spike_times('LEC', dt=dt, delay=delay, cued=cued)
-ar.generate_spike_times('Background', dt=dt, delay=delay)
-
-
-print('generated spike times..')
-sys.stdout.flush()
 
 fr = ar.cell_information['LEC']['cell info'][0]['firing rate']
 
@@ -101,6 +91,14 @@ diagram.generate_external_connectivity(ar.cell_information, **external_kwargs)
 diagram.generate_septal_connectivity()
 
 
+print('generating spike times..')
+sys.stdout.flush()
+ar.generate_spike_times('MF', dt=dt, delay=delay)
+ar.generate_spike_times('MEC', dt=dt, delay=delay)
+ar.generate_spike_times('LEC', dt=dt, delay=delay, cued=cued)
+ar.generate_spike_times('Background', dt=dt, delay=delay)
+print('generated spike times..')
+sys.stdout.flush()
 
 
 # In[12]:
@@ -273,31 +271,41 @@ pc.barrier()
 if pc.id() == 0:
     print('simulation took %0.3f seconds' % elapsed)
 
-def save_parameters(pc, circ, save_filepath):
+def save_connection_weights(pc, circ, save_filepath):
     complete_weights = {}
     for population_id in circ.neurons.keys():
         if population_id == 'Septal': continue
-        cell_info_to_save = []
         population_info = circ.neurons[population_id]
         for cell_gid in population_info.keys():
+            connection_weights = []
+            connection_weights_upd = []
+            src_gids = []
             cell_info = population_info[cell_gid]
             if not hasattr(cell_info, 'internal_netcons'):
                 continue
             for (presynaptic_id, nc, _) in cell_info.internal_netcons:
                 for netcon in nc:
-                    cell_info_to_save.append(netcon.weight[0])
+                    src_gids.append(int(netcon.srcgid()))
+                    connection_weights.append(netcon.weight[0])
                     if len(netcon.weight) == 3:
-                        cell_info_to_save.append(netcon.weight[1])
-                    else: cell_info_to_save.append(0.0)
+                        connection_weights_upd.append(netcon.weight[1])
+                    else:
+                        connection_weights_upd.append(0.0)
             for external_id in cell_info.external_netcons.keys():
                 external_cell_info = cell_info.external_netcons[external_id]
                 for (idx,(presynaptic_gid, nc, compartment)) in enumerate(external_cell_info):
                     for netcon in nc:
-                        cell_info_to_save.append(netcon.weight[0])
+                        src_gids.append(int(netcon.srcgid()))
+                        connection_weights.append(netcon.weight[0])
                         if len(netcon.weight) == 3: 
-                            cell_info_to_save.append(netcon.weight[1])
-                        else: cell_info_to_save.append(0.0)
-            complete_weights[str(cell_gid)] = cell_info_to_save
+                            connection_weights_upd.append(netcon.weight[1])
+                        else:
+                            connection_weights_upd.append(0.0)
+            connection_info = np.core.records.fromarrays((np.asarray(connection_weights, dtype=np.float32),
+                                                          np.asarray(connection_weights_upd, dtype=np.float32),
+                                                          np.asarray(src_gids, dtype=np.uint32)),
+                                                         names='weights,weights_upd,src_gids')
+            complete_weights[str(cell_gid)] = connection_info
 
     all_complete_weights = pc.py_gather(complete_weights, 0)
 
@@ -334,7 +342,7 @@ save_v_vecs(pc, f"data/v_vecs_0801-cue-ee-ei-nlaps-{nlaps}", exc_v_vecs)
         
 save_connections(pc, circuit, f"data/0801-cue-ee-ei-connections.npz")
 
-save_parameters(pc, circuit, f"params/0801-cue-ee-ei-nlaps-{nlaps}-dt-zerodot1-scale-2-v1.npz")
+save_connection_weights(pc, circuit, f"params/0801-cue-ee-ei-nlaps-{nlaps}-dt-zerodot1-scale-2-v1.npz")
 
 pc.runworker()
 pc.done()

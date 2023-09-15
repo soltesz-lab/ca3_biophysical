@@ -353,6 +353,7 @@ class WiringDiagram(object):
                 frac_place = place_fracs[place_ids.index(i)]
                 is_place = None
                 if int(self.pc.id()) == 0:
+
                     is_place = self.internal_con_rnd.choice([0,1],p=[1.0-frac_place, frac_place], size=(ncells[i],))
                 is_place = self.pc.py_broadcast(is_place, 0)
                 for (idx,ip) in enumerate(is_place):
@@ -364,13 +365,15 @@ class WiringDiagram(object):
                 place_gids = list([ idx + ctype_offset for idx in range(ncells[i]) ])
             
             notplace_gids = set([idx + ctype_offset for idx in range(ncells[i])]) - set(place_gids)
+
+            logger.info(f"notplace_gids = {notplace_gids}")
             
             if i in place_ids:
                 self.place_information[i] = {}
-                self.place_information[i]['place']     = list(place_gids)
-                self.place_information[i]['not place'] = list(notplace_gids)
+                self.place_information[i]['place']     = list(sorted(place_gids))
+                self.place_information[i]['not place'] = list(sorted(notplace_gids))
             
-            soma_coordinates = np.linspace(0, 1, ncells[i])
+            soma_coordinates = np.linspace(0., 1.0, ncells[i])
             for gid in place_gids:
                 didx = gid - ctype_offset
                 self.wiring_information[pop]['cell info'][gid]['soma position'] = soma_coordinates[didx]
@@ -456,13 +459,18 @@ class WiringDiagram(object):
                     dst_gids_to_connect_to.append(place_information[dst_pop_id]['place'])
                     
                 if cue_connection_flag:
-                    dst_gids_to_connect_to.append(cue_information[dst_pop_id]['not place'])
+                    dst_gids_to_connect_to.append(cue_information[dst_pop_id]['not place']) 
 
                 if not (place_connection_flag or cue_connection_flag):
                     dst_gids_to_connect_to.append(np.arange(ndst))
 
                 dst_gids_to_connect_to = np.concatenate(dst_gids_to_connect_to)
 
+                logger.info(f"cue_connection_flag: {cue_connection_flag} "
+                            f"dst_gids_to_connect_to = {dst_gids_to_connect_to}")
+                if cue_connection_flag:
+                    logger.info(f"cue_information[dst_pop_id]['not place'] = {cue_information[dst_pop_id]['not place']} ")
+                
                 print(f"src_id = {src_id} dst_pop_id = {dst_pop_id} "
                       f"external_place_ids = {external_place_ids} external_cue_ids = {external_cue_ids} "
                       f"src_id in external_cue_ids = {src_id in external_cue_ids} "
@@ -470,10 +478,13 @@ class WiringDiagram(object):
                 
                 if dst_pop_id == 0 and src_id < 102: # For MF and MEC connections 0.0015
                     am = self.create_adjacency_matrix(src_pos, dst_pos, nsrc, ndst, convergence, self.external_con_rnd, 
-                                                      inv_func=('exp', 0.00075), valid_gids=dst_gids_to_connect_to, src_id=src_id)
+                                                      inv_func=('exp', 0.00075),
+                                                      valid_gids=dst_gids_to_connect_to,
+                                                      src_id=src_id)
                 else:
                     am = self.create_adjacency_matrix(None, None, nsrc, ndst, convergence, 
-                                                      self.external_con_rnd, valid_gids=dst_gids_to_connect_to)  
+                                                      self.external_con_rnd,
+                                                      valid_gids=dst_gids_to_connect_to)  
                 self.external_adj_matrices[src_id][dst_pop_id] = am
 
                     
@@ -513,7 +524,11 @@ class WiringDiagram(object):
 
     def create_adjacency_matrix(self, src_coordinates, dst_coordinates, nsrc, ndst, convergence, rnd, 
                                 inv_func=None, same_pop=False, valid_gids=None, src_id=None):
-            
+
+        logger.info(f"adjacency: nsrc = {nsrc} ndst = {ndst} "
+                    f"src_coordinates = {src_coordinates} dst_coordinates = {dst_coordinates} "
+                    f"valid_gids = {valid_gids}"
+                    )
         if valid_gids is None: valid_gids = np.arange(ndst)
         adj_mat = np.zeros((nsrc, ndst), dtype='uint16')
         for d in range(ndst):

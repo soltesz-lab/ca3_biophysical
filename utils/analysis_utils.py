@@ -80,18 +80,19 @@ def baks(spktimes, time, a=1.5, b=None):
 def saved_weight_change(connection_dict, weight_dict, src_id, dst_id):
     
     weight_before, weight_after = [], []
-    
+
+    this_weight_dict = weight_dict[dst_id]
     for dst_gid in connection_dict[dst_id].keys():
         if src_id not in connection_dict[dst_id][dst_gid]: continue
         src_gids = connection_dict[dst_id][dst_gid][src_id]
-        has_updated_weights = len(weight_dict[dst_gid]) > len(src_gids)
+        has_updated_weights = len(this_weight_dict[dst_gid]) > len(src_gids)
         for i, src_gid in enumerate(src_gids):
             if has_updated_weights:
-                weight_before.append(weight_dict[dst_gid][2*i])
-                weight_after.append(weight_dict[dst_gid][2*i] + weight_dict[dst_gid][2*i + 1])
+                weight_before.append(this_weight_dict[dst_gid][2*i])
+                weight_after.append(this_weight_dict[dst_gid][2*i] + this_weight_dict[dst_gid][2*i + 1])
             else:
-                weight_before.append(weight_dict[dst_gid][i])
-                weight_after.append(weight_dict[dst_gid][i])
+                weight_before.append(this_weight_dict[dst_gid][i])
+                weight_after.append(this_weight_dict[dst_gid][i])
         
     pchange = []
     for (b,a) in zip(weight_before, weight_after):
