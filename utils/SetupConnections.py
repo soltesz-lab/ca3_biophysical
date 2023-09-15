@@ -6,6 +6,7 @@ import traceback
 import matplotlib.pyplot as plt
 from neuron import h
 import logging
+from scipy.interpolate import Akima1DInterpolator
 
 
 def place_field_fr(center, spatial_bins, max_fr, min_fr, diameter):
@@ -37,11 +38,14 @@ def get_inhom_poisson_spike_times_by_thinning(rate, t, dt=0.02, delay=0.0, refra
     min_fr = np.min(rate)
     if generator is None:
         generator = random
-    interp_t = np.arange(tt[0], tt[-1] + dt, dt)
+    interp_t = np.arange(tt[0], tt[-1], dt)
+    
     try:
-        interp_rate = np.interp(interp_t, tt, rate)
+        rate_ip = Akima1DInterpolator(tt, rate)
+        interp_rate = rate_ip(interp_t)
     except Exception:
         print('t shape: %s rate shape: %s' % (str(tt.shape), str(rate.shape)))
+        raise
     
     delay_t = np.arange(-delay, 0, dt)
     delay_r = np.ones(len(delay_t))*2.
@@ -220,7 +224,7 @@ class Arena(object):
         start_time = 0
         end_time  = nlaps * self.arena_size / mouse_speed
         bin2times = np.arange(0, end_time, step=self.bin_size/mouse_speed, dtype='float32') * 1000.
-    
+        
         if cued:
             self.cued_positions  = np.linspace(12.5, self.arena_size-12.5, np.sum(is_spatial))
             self.random_cue_locs = np.arange(len(self.cued_positions))
@@ -245,6 +249,7 @@ class Arena(object):
             if (bin2times.shape[0] > current_full_fr.shape[0]): bin2times = bin2times[:-1]
             spike_times = np.asarray(get_inhom_poisson_spike_times_by_thinning(current_full_fr, bin2times, dt=dt, delay=delay),
                                      dtype='float32')
+            #print(f"population {population}: gid {gid}: fr = {current_full_fr} spike_times = {spike_times}")
             self.cell_information[population]['cell info'][gid]['spike times'] = spike_times
 
             
@@ -427,7 +432,7 @@ class WiringDiagram(object):
         ctype_offset = 0
         for pop in self.wiring_information.keys():
             if ctype_offset < self.wiring_information[pop]['ctype offset']:
-                ctype_offset = self.wiring_information[pop]['ctype offset']
+                ctype_offset = self.wiring_information[pop]['ctype offset'] + self.wiring_information[pop]['ncells']
         
         self.external_pop2id = {pop:i for (pop,i) in list(zip(external_pops, external_ids))}
 

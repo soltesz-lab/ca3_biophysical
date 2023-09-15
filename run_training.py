@@ -252,7 +252,6 @@ h.dt = 0.025
 h.celsius = 37.
 h.tstop =  time_for_single_lap * nlaps + 500
 
-
 if pc.id() == 0:
     print(f'starting simulation for {nlaps} lap(s) until {h.tstop} ms..')
     sys.stdout.flush()
