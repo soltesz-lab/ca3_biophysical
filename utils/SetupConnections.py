@@ -1,6 +1,7 @@
 import numpy as np
 import yaml
 from copy import deepcopy
+from collections import defaultdict
 import random
 import traceback
 import matplotlib.pyplot as plt
@@ -393,9 +394,11 @@ class WiringDiagram(object):
         
     def generate_internal_connectivity(self):
         self.internal_adj_matrices = {}
+        self.internal_ws = {}
         for popA in self.pops:
             popA_id = self.pop2id[popA]
             self.internal_adj_matrices[popA_id] = {}
+            self.internal_ws[popA_id] = {}
             for popB in self.pops:   
                 popB_id = self.pop2id[popB]
                 popA_pos = self._get_soma_coordinates(self.wiring_information[popA]['cell info'])
@@ -407,11 +410,12 @@ class WiringDiagram(object):
                     if popA == popB: same_pop=True
                     if popA_id == 0 and popB_id == 0:
                         alpha = 0.0125
-                        am = self.create_adjacency_matrix(popA_pos, popB_pos, nA, nB, convergence, self.internal_con_rnd, 
+                        am, ws = self.create_adjacency_matrix(popA_pos, popB_pos, nA, nB, convergence, self.internal_con_rnd, 
                                                           inv_func=('exp', alpha), same_pop=same_pop, src_id=popA_id)
                     else:
-                        am = self.create_adjacency_matrix(None, None, nA, nB, convergence, self.internal_con_rnd, same_pop=same_pop)   
+                        am, ws = self.create_adjacency_matrix(None, None, nA, nB, convergence, self.internal_con_rnd, same_pop=same_pop)   
                     self.internal_adj_matrices[popA_id][popB_id] = am
+                    self.internal_ws[popA_id][popB_id] = ws
                 except:
                     continue
                    #print('no connection between src %s and dst %s' % (popA, popB) )
@@ -438,10 +442,12 @@ class WiringDiagram(object):
 
         self.external_information = external_information
         self.external_adj_matrices = {}
+        self.external_ws = {}
         for src_id,src_pop in list(zip(external_ids,external_pops)):
             self.external_information[src_pop]['ctype offset'] = ctype_offset
             ctype_offset += self.external_information[src_pop]['ncells']
             self.external_adj_matrices[src_id] = {}
+            self.external_ws[src_id] = {}
             for dst_pop in self.pops:
                 dst_pop_id = self.pop2id[dst_pop]
                 try:
@@ -482,15 +488,18 @@ class WiringDiagram(object):
                       f"src_id in external_place_ids = {src_id in external_place_ids} ")
                 
                 if dst_pop_id == 0 and src_id < 102: # For MF and MEC connections 0.0015
-                    am = self.create_adjacency_matrix(src_pos, dst_pos, nsrc, ndst, convergence, self.external_con_rnd, 
-                                                      inv_func=('exp', 0.00075),
-                                                      valid_gids=dst_gids_to_connect_to,
-                                                      src_id=src_id)
+                    alpha = 0.00075
+                    am, ws = self.create_adjacency_matrix(src_pos, dst_pos, nsrc, ndst, convergence, self.external_con_rnd, 
+                                                          inv_func=('exp', alpha),
+                                                          valid_gids=dst_gids_to_connect_to,
+                                                          src_id=src_id)
                 else:
-                    am = self.create_adjacency_matrix(None, None, nsrc, ndst, convergence, 
-                                                      self.external_con_rnd,
-                                                      valid_gids=dst_gids_to_connect_to)  
+                    am, ws = self.create_adjacency_matrix(None, None, nsrc, ndst, convergence, 
+                                                          self.external_con_rnd,
+                                                          valid_gids=dst_gids_to_connect_to)
+                    
                 self.external_adj_matrices[src_id][dst_pop_id] = am
+                self.external_ws[src_id][dst_pop_id] = ws
 
                     
     def generate_septal_connectivity(self):
@@ -528,7 +537,8 @@ class WiringDiagram(object):
         self.params = self.pc.py_broadcast(circuit_params, 0)
 
     def create_adjacency_matrix(self, src_coordinates, dst_coordinates, nsrc, ndst, convergence, rnd, 
-                                inv_func=None, same_pop=False, valid_gids=None, src_id=None):
+                                inv_func=None, same_pop=False, valid_gids=None, src_id=None,
+                                weight_scale_func=None):
 
         logger.info(f"adjacency: nsrc = {nsrc} ndst = {ndst} "
                     f"src_coordinates = {src_coordinates} dst_coordinates = {dst_coordinates} "
@@ -536,6 +546,8 @@ class WiringDiagram(object):
                     )
         if valid_gids is None: valid_gids = np.arange(ndst)
         adj_mat = np.zeros((nsrc, ndst), dtype='uint16')
+        weight_scales = defaultdict(lambda: 1.0)
+        
         for d in range(ndst):
             if d not in valid_gids: continue
             if src_coordinates is not None and dst_coordinates is not None:
@@ -581,7 +593,10 @@ class WiringDiagram(object):
                 
             for gid in presynaptic_gids:
                 adj_mat[gid,d] += 1
-        return adj_mat
+                if weight_scale_func is not None:
+                    weight_scale[(gid,d)] = weight_scale_func(gid, d)
+                    
+        return adj_mat, weight_scale
                 
     
     

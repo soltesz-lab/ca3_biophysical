@@ -49,7 +49,7 @@ def _make_synapse(stype, compartment, weight, synapse_information, srcid, dstid,
     for k in syn_params.keys(): setattr(syn_, k, syn_params[k])
     return syn_
 
-def create_netcon(pc, srcid, dstid, src_gid, dst_cell, synapse_information, compartment, params):
+def create_netcon(pc, srcid, dstid, src_gid, dst_cell, synapse_information, compartment, params, **netcon_params):
 
     ncs = []
     
@@ -60,6 +60,8 @@ def create_netcon(pc, srcid, dstid, src_gid, dst_cell, synapse_information, comp
     weight       = synapse_information['weight1'] #/ float(params['scale'])
     if params['scale'] > 1:
         weight /= (float(params['scale']))
+    ws = netcon_params.get('weight_scale', 1.0)
+    weight *= float(ws)
     if type(synapse_type) is not list: 
         synapse_type = [synapse_type]
     ncs = []

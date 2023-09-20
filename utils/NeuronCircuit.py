@@ -21,10 +21,7 @@ from olm_v2 import OLM_v2
 from septal import Septal
 from neuron import h
 from ca3_neuron_utils import create_netcon
-import logging
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 
@@ -105,7 +102,7 @@ class Circuit(object):
                 else:
                     raise RuntimeError(f"Unknown cell type {ctype}")
                 
-                self.neurons[cidx][gid] = cell
+                self.neurons[cidx][ctype_id] = cell
 
                 
                 ## Tell the ParallelContext that this cell is
@@ -142,7 +139,7 @@ class Circuit(object):
                     stimcell.play(vec)
                 else:
                     raise RuntimeError(f"Unknown cell type {ctype}")
-                self.neurons[cidx][gid] = stimcell
+                self.neurons[cidx][ctype_id] = stimcell
                 self.pc.set_gid2node(gid, self.pc.id())
                 spike_detector = h.NetCon(stimcell, None)
                 self.pc.cell(gid, spike_detector) # Associate the cell with this host and gid
@@ -158,13 +155,13 @@ class Circuit(object):
             for ctype_id in range(ncells):
                 gid = ctype_id + ctype_offset
                 sc = Septal(gid, self.cell_params['Septal']['parameters'])
-                self.neurons['Septal'][gid] = sc
+                self.neurons['Septal'][ctype_id] = sc
                 self.pc.set_gid2node(gid, self.pc.id())
                 self.pc.cell(gid, sc.spike_detector) # Associate the cell with this host and gid
                 
             ctype_offset += ncells
                 
-    def build_internal_netcons(self, internal_adj_matrices, seed=1e6):
+    def build_internal_netcons(self, internal_adj_matrices, internal_ws, seed=1e6):
         rnd = np.random.RandomState(seed=int(seed))
         src_population_ids = list(internal_adj_matrices.keys())
         for src_pop_id in src_population_ids:
@@ -173,31 +170,31 @@ class Circuit(object):
             for dst_pop_id in dst_population_ids:
                 adj_matrix = internal_adj_matrices[src_pop_id][dst_pop_id]
                 dst_neurons = self.neurons[dst_pop_id] # PYR to PVBC, for example
-                dst_offset = self.ctype_offsets[dst_pop_id]
                 
                 synapse_information = self.cell_params['internal connectivity'][src_pop_id][dst_pop_id]['synapse']
                 for i in range(adj_matrix.shape[0]):
                     src_gid = i + src_offset
                     for j in range(adj_matrix.shape[1]):
-                        dst_gid = j + dst_offset
                         nconnections = adj_matrix[i,j]
                         if nconnections == 0: continue
 
-                        if not ((dst_gid in dst_neurons) and self.pc.gid_exists(dst_neurons[dst_gid].gid)):
+                        if not ((j in dst_neurons) and self.pc.gid_exists(dst_neurons[j].gid)):
                             continue
 
+                        ws               = internal_ws[(i,j)]
                         compartments     = synapse_information['compartments']
                         rnd_compartments = rnd.randint(0, len(compartments), size=(nconnections,))
                         chosen_compartments = [compartments[ridx] for ridx in rnd_compartments]
                         
                         for con_num in range(nconnections):
                             compartment = chosen_compartments[con_num]
-                            ncs = create_netcon(self.pc, src_pop_id, dst_pop_id, src_gid, dst_neurons[dst_gid], 
-                                                synapse_information, compartment, self.cell_params)
+                            ncs = create_netcon(self.pc, src_pop_id, dst_pop_id, src_gid, dst_neurons[j], 
+                                                synapse_information, compartment, self.cell_params,
+                                                weight_scale=ws)
 
-                            dst_neurons[dst_gid].internal_netcons.append( (src_gid, ncs, compartment) )
+                            dst_neurons[j].internal_netcons.append( (src_gid, ncs, compartment) )
 
-    def build_external_netcons(self, src_pop_id, external_adj_matrices, seed=1e7):
+    def build_external_netcons(self, src_pop_id, external_adj_matrices, external_ws, seed=1e7):
         seed = int(seed) + src_pop_id
         rnd  = np.random.RandomState(seed=seed)
         
@@ -205,29 +202,31 @@ class Circuit(object):
         dst_population_ids = list(external_adj_matrices.keys())
         for dst_pop_id in dst_population_ids:
             adj_matrix = external_adj_matrices[dst_pop_id]
-            dst_offset = self.ctype_offsets[dst_pop_id]
+            
             dst_neurons = self.neurons[dst_pop_id] # PYR to PVBC, for example
             synapse_information = self.cell_params['external connectivity'][src_pop_id][dst_pop_id]['synapse']
             for i in range(adj_matrix.shape[0]):
                 src_gid = i + src_offset
                 for j in range(adj_matrix.shape[1]):
-                    dst_gid = j + dst_offset
                     nconnections = adj_matrix[i,j]
                     if nconnections == 0: continue
+
+                    if not ((j in dst_neurons) and self.pc.gid_exists(dst_neurons[j].gid)):
+                        continue
+                    
+                    ws               = external_ws[(i,j)]
                     compartments     = synapse_information['compartments']
                     rnd_compartments = rnd.randint(0, len(compartments), size=(nconnections,))
                     chosen_compartments = [compartments[ridx] for ridx in rnd_compartments]
-
-                    if not ((dst_gid in dst_neurons) and self.pc.gid_exists(dst_neurons[dst_gid].gid)):
-                        continue
                     
                     for con_num in range(nconnections):
                         compartment = chosen_compartments[con_num]
-                        ncs = create_netcon(self.pc, src_pop_id, dst_pop_id, src_gid, dst_neurons[dst_gid], 
-                                            synapse_information, compartment, self.cell_params)
-                        if src_pop_id not in self.neurons[dst_pop_id][dst_gid].external_netcons: 
-                            self.neurons[dst_pop_id][dst_gid].external_netcons[src_pop_id] = []
-                        self.neurons[dst_pop_id][dst_gid].external_netcons[src_pop_id].append( (src_gid, ncs, compartment) )
+                        ncs = create_netcon(self.pc, src_pop_id, dst_pop_id, src_gid, dst_neurons[j], 
+                                            synapse_information, compartment, self.cell_params,
+                                            weight_scale=ws)
+                        if src_pop_id not in self.neurons[dst_pop_id][j].external_netcons: 
+                            self.neurons[dst_pop_id][j].external_netcons[src_pop_id] = []
+                        self.neurons[dst_pop_id][j].external_netcons[src_pop_id].append( (src_gid, ncs, compartment) )
                         
     def build_septal_netcons(self, src_pop_id, septal_adj_matrices, seed=1e8):
         rnd = np.random.RandomState(seed=int(seed))
@@ -235,11 +234,10 @@ class Circuit(object):
         dst_population_ids = list(septal_adj_matrices.keys())
         for dst_pop_id in dst_population_ids:
             adj_matrix = septal_adj_matrices[dst_pop_id]
-            dst_offset = self.ctype_offsets[dst_pop_id]
+            
             synapse_information = self.cell_params['Septal']['connectivity'][dst_pop_id]['synapse']
             for i in range(adj_matrix.shape[0]):
                 for j in range(adj_matrix.shape[1]):
-                    dst_gid = j + dst_offset
                     nconnections = adj_matrix[i,j]
                     if nconnections == 0: continue
                     compartments     = synapse_information['compartments']
@@ -251,16 +249,16 @@ class Circuit(object):
                         # TODO: provide source gids
                         ncs = create_netcon(self.pc, 'Septal', dst_pop_id,
                                             self.neurons['Septal'][i],
-                                            self.neurons[dst_pop_id][dst_gid], 
+                                            self.neurons[dst_pop_id][j], 
                                             synapse_information, compartment, self.cell_params)
-                        self.neurons[dst_pop_id][dst_gid].internal_netcons.append( (self.neurons['Septal'][i].gid, ncs, compartment) )
+                        self.neurons[dst_pop_id][j].internal_netcons.append( (self.neurons['Septal'][i].gid, ncs, compartment) )
 
     def get_cell_spikes(self, group_id):
         neurons = self.neurons[group_id]
-        spike_times = {}
+        spike_times = []
         for k in list(neurons.keys()):
             cell = neurons[k]
-            spike_times[int(cell.gid)] = list(cell.spike_times)
+            spike_times.append(list(cell.spike_times))
         return spike_times
     
     def record_lfp(self, population_ids):
