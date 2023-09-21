@@ -170,7 +170,7 @@ class Circuit(object):
             for dst_pop_id in dst_population_ids:
                 adj_matrix = internal_adj_matrices[src_pop_id][dst_pop_id]
                 dst_neurons = self.neurons[dst_pop_id] # PYR to PVBC, for example
-                
+                this_internal_ws = internal_ws[src_pop_id][dst_pop_id]
                 synapse_information = self.cell_params['internal connectivity'][src_pop_id][dst_pop_id]['synapse']
                 for i in range(adj_matrix.shape[0]):
                     src_gid = i + src_offset
@@ -181,7 +181,7 @@ class Circuit(object):
                         if not ((j in dst_neurons) and self.pc.gid_exists(dst_neurons[j].gid)):
                             continue
 
-                        ws               = internal_ws[(i,j)]
+                        ws               = this_internal_ws[(i,j)]
                         compartments     = synapse_information['compartments']
                         rnd_compartments = rnd.randint(0, len(compartments), size=(nconnections,))
                         chosen_compartments = [compartments[ridx] for ridx in rnd_compartments]
@@ -202,7 +202,7 @@ class Circuit(object):
         dst_population_ids = list(external_adj_matrices.keys())
         for dst_pop_id in dst_population_ids:
             adj_matrix = external_adj_matrices[dst_pop_id]
-            
+            this_external_ws = external_ws[dst_pop_id]
             dst_neurons = self.neurons[dst_pop_id] # PYR to PVBC, for example
             synapse_information = self.cell_params['external connectivity'][src_pop_id][dst_pop_id]['synapse']
             for i in range(adj_matrix.shape[0]):
@@ -214,7 +214,7 @@ class Circuit(object):
                     if not ((j in dst_neurons) and self.pc.gid_exists(dst_neurons[j].gid)):
                         continue
                     
-                    ws               = external_ws[(i,j)]
+                    ws               = this_external_ws[(i,j)]
                     compartments     = synapse_information['compartments']
                     rnd_compartments = rnd.randint(0, len(compartments), size=(nconnections,))
                     chosen_compartments = [compartments[ridx] for ridx in rnd_compartments]
@@ -255,10 +255,10 @@ class Circuit(object):
 
     def get_cell_spikes(self, group_id):
         neurons = self.neurons[group_id]
-        spike_times = []
+        spike_times = {}
         for k in list(neurons.keys()):
             cell = neurons[k]
-            spike_times.append(list(cell.spike_times))
+            spike_times[cell.gid] = list(cell.spike_times)
         return spike_times
     
     def record_lfp(self, population_ids):

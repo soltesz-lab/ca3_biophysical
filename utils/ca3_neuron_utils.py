@@ -57,7 +57,8 @@ def create_netcon(pc, srcid, dstid, src_gid, dst_cell, synapse_information, comp
         return ncs
         
     synapse_type = synapse_information['type']
-    weight       = synapse_information['weight1'] #/ float(params['scale'])
+    weight1      = synapse_information['weight1'] #/ float(params['scale'])
+    weight = weight1
     if params['scale'] > 1:
         weight /= (float(params['scale']))
     ws = netcon_params.get('weight_scale', 1.0)

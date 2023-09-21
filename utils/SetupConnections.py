@@ -433,6 +433,16 @@ class WiringDiagram(object):
         external_pops = list(external_information.keys())
         external_ids  = [external_information[pop]['id'] for pop in external_pops]
 
+        LEC_cue_weight_mean = 0.9
+        LEC_cue_weight_scale = 0.025
+        LEC_place_weight_mean = 0.2
+        LEC_place_weight_scale = 0.025
+
+        MEC_cue_weight_mean = 0.4
+        MEC_cue_weight_scale = 0.025
+        MEC_place_weight_mean = 1.1
+        MEC_place_weight_scale = 0.025
+        
         ctype_offset = 0
         for pop in self.wiring_information.keys():
             if ctype_offset < self.wiring_information[pop]['ctype offset']:
@@ -465,12 +475,19 @@ class WiringDiagram(object):
                 cue_connection_flag = dst_pop_id in cue_information and src_id in external_cue_ids
 
                 dst_gids_to_connect_to = []
+
+                place_gids = None
+                cue_gids = None
                 
                 if place_connection_flag:
-                    dst_gids_to_connect_to.append(place_information[dst_pop_id]['place'])
+                    place_gids = place_information[dst_pop_id]['place']
+                    place_gid_set = set(place_gids)
+                    dst_gids_to_connect_to.append(place_gids)
                     
                 if cue_connection_flag:
-                    dst_gids_to_connect_to.append(cue_information[dst_pop_id]['not place']) 
+                    cue_gids = cue_information[dst_pop_id]['not place']
+                    cue_gid_set = set(cue_gids)
+                    dst_gids_to_connect_to.append(cue_gids) 
 
                 if not (place_connection_flag or cue_connection_flag):
                     dst_gids_to_connect_to.append(np.arange(ndst))
@@ -486,17 +503,41 @@ class WiringDiagram(object):
                       f"external_place_ids = {external_place_ids} external_cue_ids = {external_cue_ids} "
                       f"src_id in external_cue_ids = {src_id in external_cue_ids} "
                       f"src_id in external_place_ids = {src_id in external_place_ids} ")
+
+                
+                LEC_cue_weights = np.clip(self.external_con_rnd.normal(LEC_cue_weight_mean,
+                                                                       LEC_cue_weight_scale,
+                                                                       ndst), 0.0, None)
+                LEC_place_weights = np.clip(self.external_con_rnd.normal(LEC_place_weight_mean,
+                                                                         LEC_place_weight_scale,
+                                                                         ndst), 0.0, None)
+                MEC_cue_weights = np.clip(self.external_con_rnd.normal(MEC_cue_weight_mean,
+                                                                       MEC_cue_weight_scale,
+                                                                       ndst), 0.0, None)
+                MEC_place_weights = np.clip(self.external_con_rnd.normal(MEC_place_weight_mean,
+                                                                         MEC_place_weight_scale,
+                                                                         ndst), 0.0, None)
+                                            
+                weight_scale_func = None
+                if dst_pop_id == 0 and src_id == 101:
+                    weight_scale_func = lambda dst_gid, src_gid: MEC_cue_weights[dst_gid] if dst_gid in cue_gid_set else MEC_place_weights[dst_gid]
+                if dst_pop_id == 0 and src_id == 102:
+                    weight_scale_func = lambda dst_gid, src_gid: LEC_cue_weights[dst_gid] if dst_gid in cue_gid_set else LEC_place_weights[dst_gid]
                 
                 if dst_pop_id == 0 and src_id < 102: # For MF and MEC connections 0.0015
                     alpha = 0.00075
-                    am, ws = self.create_adjacency_matrix(src_pos, dst_pos, nsrc, ndst, convergence, self.external_con_rnd, 
+                    am, ws = self.create_adjacency_matrix(src_pos, dst_pos, nsrc, ndst,
+                                                          convergence, self.external_con_rnd, 
                                                           inv_func=('exp', alpha),
                                                           valid_gids=dst_gids_to_connect_to,
-                                                          src_id=src_id)
+                                                          src_id=src_id,
+                                                          weight_scale_func=weight_scale_func)
                 else:
-                    am, ws = self.create_adjacency_matrix(None, None, nsrc, ndst, convergence, 
+                    am, ws = self.create_adjacency_matrix(None, None, nsrc, ndst,
+                                                          convergence, 
                                                           self.external_con_rnd,
-                                                          valid_gids=dst_gids_to_connect_to)
+                                                          valid_gids=dst_gids_to_connect_to,
+                                                          weight_scale_func=weight_scale_func)
                     
                 self.external_adj_matrices[src_id][dst_pop_id] = am
                 self.external_ws[src_id][dst_pop_id] = ws
@@ -550,6 +591,7 @@ class WiringDiagram(object):
         
         for d in range(ndst):
             if d not in valid_gids: continue
+            dst_coord = None
             if src_coordinates is not None and dst_coordinates is not None:
 
                 assert len(src_coordinates) == nsrc
@@ -594,9 +636,9 @@ class WiringDiagram(object):
             for gid in presynaptic_gids:
                 adj_mat[gid,d] += 1
                 if weight_scale_func is not None:
-                    weight_scale[(gid,d)] = weight_scale_func(gid, d)
+                    weight_scales[(gid,d)] = weight_scale_func(gid, d)
                     
-        return adj_mat, weight_scale
+        return adj_mat, weight_scales
                 
     
     
