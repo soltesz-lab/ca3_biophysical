@@ -10,7 +10,7 @@ import logging
 from scipy.interpolate import Akima1DInterpolator
 
 
-def place_field_fr(center, spatial_bins, max_fr, min_fr, diameter):
+def place_field_fr(center, spatial_bins, max_fr, diameter):
     c      = diameter / 4.3
     fnc = max_fr * np.exp(-( (spatial_bins-center) / (c)) ** 2.)
     return fnc
@@ -116,7 +116,9 @@ class Arena(object):
         self.pc.barrier()
         self.params['Spatial'] = self.pc.py_broadcast(arena_cell_params, 0)
           
-    def generate_population_firing_rates(self):
+    def generate_population_firing_rates(self, seed=2e9):
+
+        rnd = np.random.RandomState(seed=int(seed))
         
         for population_name in self.params['Spatial'].keys():
             self.cell_information[population_name] = {}
@@ -143,10 +145,13 @@ class Arena(object):
                     self.cell_information[population_name]['cell info'][gid]['field center'] = field_centers[idx]
 
 
-                peak_rate = current_population['place']['peak rate']
+                peak_rates = current_population['place']['peak rates']
+                peak_rate_probs = current_population['place']['peak rate probabilities']
+                peak_rate_prob_sum = np.sum(peak_rate_probs)
+                peak_rate_probs_nrm  = peak_rate_probs / peak_rate_prob_sum
                 min_rate  = current_population['place']['min rate']
                 diameter  = current_population['place']['diameter']
-                place_firing_rates = generate_place_firing_maps(field_centers, peak_rate, min_rate, diameter, self.arena_map)
+                place_firing_rates = generate_place_firing_maps(field_centers, peak_rates, peak_rate_probs_nrm, min_rate, diameter, self.arena_map, rnd)
                 for idx in range(ncells):
                     gid = idx + ctype_offset                    
                     self.cell_information[population_name]['cell info'][gid]['firing rate'] = place_firing_rates[idx]
@@ -158,12 +163,16 @@ class Arena(object):
                     gid = idx + ctype_offset                    
                     self.cell_information[population_name]['cell info'][gid]['field center'] = field_centers[idx]
 
-                peak_rate = current_population['grid']['peak rate']
+                peak_rates = current_population['grid']['peak rates']
+                peak_rate_probs = current_population['grid']['peak rate probabilities']
+                peak_rate_prob_sum = np.sum(peak_rate_probs)
+                peak_rate_probs_nrm  = peak_rate_probs / peak_rate_prob_sum
                 min_rate  = current_population['grid']['min rate']
                 diameter  = current_population['grid']['diameter']
                 gap       = current_population['grid']['gap']
                 
-                grid_firing_rates = generate_grid_firing_maps(field_centers, peak_rate, min_rate, diameter, gap, self.arena_map)
+                grid_firing_rates = generate_grid_firing_maps(field_centers, peak_rates, peak_rate_probs_nrm,
+                                                              min_rate, diameter, gap, self.arena_map, rnd)
                 for idx in range(ncells):
                     gid = idx + ctype_offset                    
                     self.cell_information[population_name]['cell info'][gid]['firing rate'] = grid_firing_rates[idx]
@@ -179,12 +188,16 @@ class Arena(object):
             ncue_cells = int(ncells*percent_cue)
             cells_cued = rnd.choice(np.arange(ncells), size=(ncue_cells,), replace=False)
             min_fr=self.params['Spatial'][population]['cue']['min rate']
-            max_fr=self.params['Spatial'][population]['cue']['peak rate']
+            peak_rates=self.params['Spatial'][population]['cue']['peak rates']
+            peak_rate_probs = self.params['Spatial'][population]['cue']['peak rate probabilities']
+            peak_rate_prob_sum = np.sum(peak_rate_probs)
+            peak_rate_probs_nrm  = peak_rate_probs / peak_rate_prob_sum
             diameter=self.params['Spatial'][population]['cue']['diameter']
             cue_firing_rates = []
             for i in range(ncells):
                 cue_fr = None
                 if i in cells_cued:
+                    max_fr = rnd.choice(peak_rates, p=peak_rate_probs_nrm)
                     cue_fr = place_field_fr(int(self.arena_size/2), self.arena_map, max_fr, diameter)
                 else:
                     cue_fr = [noise_fr for _ in range(len(self.arena_map))]
@@ -271,30 +284,36 @@ def soma_positions_to_field_center(volume_positions, arena_size):
     return spatial_positions
 
 
-def generate_place_firing_maps(field_centers, peak_rate, min_rate, diameter, arena_map):
+def generate_place_firing_maps(field_centers, peak_rates, peak_rate_probs, min_rate, diameter, arena_map, rnd):
     firing_rates = {}
     for gid in list(field_centers.keys()):
+        max_rate = rnd.choice(peak_rates, p=peak_rate_probs)
         current_center = field_centers[gid]
-        fr = np.asarray(place_field_fr(current_center, arena_map, peak_rate, diameter), dtype='float32')
+        fr = np.asarray(place_field_fr(current_center, arena_map, max_rate, diameter),
+                        dtype='float32')
         fr[fr<=min_rate] = min_rate
         firing_rates[gid] = fr
     return firing_rates
    
     
-def generate_grid_firing_maps(field_centers, peak_rate, min_rate, diameter, gap, arena_map):
+def generate_grid_firing_maps(field_centers, peak_rates, peak_rate_probs, min_rate, diameter, gap, arena_map, rnd):
     firing_rates = {}
     for gid in list(field_centers.keys()):
+        max_rate = rnd.choice(peak_rates, p=peak_rate_probs)
         current_center = field_centers[gid]
-        current_firing_rate    = np.asarray(place_field_fr(current_center, arena_map, peak_rate, diameter), dtype='float32')
+        current_firing_rate    = np.asarray(place_field_fr(current_center, arena_map, max_rate, 
+                                                           diameter), dtype='float32')
         arena_min, arena_max = np.min(arena_map), np.max(arena_map)
         current_pos = current_center - gap
         while (current_pos >= 0):
-            hopped_fr = np.asarray(place_field_fr(current_pos, arena_map, peak_rate, diameter), dtype='float32')
+            hopped_fr = np.asarray(place_field_fr(current_pos, arena_map, max_rate, 
+                                                  diameter), dtype='float32')
             current_firing_rate += hopped_fr
             current_pos -= gap
         current_pos = current_center + gap
         while (current_pos <= arena_max):
-            hopped_fr = np.asarray(place_field_fr(current_pos, arena_map, peak_rate, diameter), dtype='float32')
+            hopped_fr = np.asarray(place_field_fr(current_pos, arena_map, max_rate, 
+                                                  diameter), dtype='float32')
             current_firing_rate += hopped_fr
             current_pos += gap
         current_firing_rate[current_firing_rate <= min_rate] = min_rate
@@ -304,11 +323,6 @@ def generate_grid_firing_maps(field_centers, peak_rate, min_rate, diameter, gap,
         
         
         
-
-def place_field_fr(center, spatial_bins, max_fr, diameter):
-    c      = diameter / 4.3
-    fnc = max_fr * np.exp(-( (spatial_bins-center) / (c)) ** 2.)
-    return fnc  
     
     
     
@@ -438,9 +452,9 @@ class WiringDiagram(object):
         LEC_place_weight_mean = 0.2
         LEC_place_weight_scale = 0.025
 
-        MEC_cue_weight_mean = 0.4
+        MEC_cue_weight_mean = 0.3
         MEC_cue_weight_scale = 0.025
-        MEC_place_weight_mean = 1.1
+        MEC_place_weight_mean = 1.0
         MEC_place_weight_scale = 0.025
         
         ctype_offset = 0
