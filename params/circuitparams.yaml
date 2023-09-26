@@ -370,7 +370,7 @@ Circuit:
                 probability: 8
                 synapse:
                     type: ['AMPA', 'NMDA']
-                    weight1: 5.0e-3 #5.0e-3 for E->E and I->E 
+                    weight1: 3.4e-4 #5.0e-3 for E->E and I->E 
                     potentiation: 2.5e-5 #1.0e-5 #3.75e-6 #2.0e-5 
                     compartments: ['lacunosumLEC']
             1:
@@ -425,7 +425,7 @@ Circuit:
                 probability: 80
                 synapse:
                     type: ['AMPA', 'NMDA']
-                    weight1: 8.0e-4 #7.85e-4 #7.65e-4 #7.55e-4 #7.5e-4 #6.0e-4
+                    weight1: 8.5e-4 #7.85e-4 #7.65e-4 #7.55e-4 #7.5e-4 #6.0e-4
                     tau1: 2.0
                     tau2: 6.3
                     e: 0.
