@@ -4,6 +4,7 @@ import yaml
 import os
 import sys
 import pickle
+import logging
 
 from ca3pyr_dhh import ca3pyrcell
 from pvbc import PVBC
@@ -21,6 +22,9 @@ from olm_v2 import OLM_v2
 from septal import Septal
 from neuron import h
 from ca3_neuron_utils import create_netcon
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 
@@ -188,11 +192,13 @@ class Circuit(object):
                         
                         for con_num in range(nconnections):
                             compartment = chosen_compartments[con_num]
+                            compartment_idx = rnd_compartments[con_num]
                             ncs = create_netcon(self.pc, src_pop_id, dst_pop_id, src_gid, dst_neurons[j], 
                                                 synapse_information, compartment, self.cell_params,
                                                 weight_scale=ws)
 
-                            dst_neurons[j].internal_netcons.append( (src_gid, ncs, compartment) )
+                            dst_neurons[j].internal_netcons.append( (src_gid, ncs, compartment, compartment_idx) )
+
 
     def build_external_netcons(self, src_pop_id, external_adj_matrices, external_ws, seed=1e7):
         seed = int(seed) + src_pop_id
@@ -220,13 +226,14 @@ class Circuit(object):
                     chosen_compartments = [compartments[ridx] for ridx in rnd_compartments]
                     
                     for con_num in range(nconnections):
+                        compartment_idx = rnd_compartments[con_num]
                         compartment = chosen_compartments[con_num]
                         ncs = create_netcon(self.pc, src_pop_id, dst_pop_id, src_gid, dst_neurons[j], 
                                             synapse_information, compartment, self.cell_params,
                                             weight_scale=ws)
                         if src_pop_id not in self.neurons[dst_pop_id][j].external_netcons: 
                             self.neurons[dst_pop_id][j].external_netcons[src_pop_id] = []
-                        self.neurons[dst_pop_id][j].external_netcons[src_pop_id].append( (src_gid, ncs, compartment) )
+                        self.neurons[dst_pop_id][j].external_netcons[src_pop_id].append( (src_gid, ncs, compartment, compartment_idx) )
                         
     def build_septal_netcons(self, src_pop_id, septal_adj_matrices, seed=1e8):
         rnd = np.random.RandomState(seed=int(seed))
@@ -245,14 +252,81 @@ class Circuit(object):
                     chosen_compartments = [compartments[ridx] for ridx in rnd_compartments]
 
                     for con_num in range(nconnections):
+                        compartment_idx = rnd_compartments[con_num]
                         compartment = chosen_compartments[con_num]
                         # TODO: provide source gids
                         ncs = create_netcon(self.pc, 'Septal', dst_pop_id,
                                             self.neurons['Septal'][i],
                                             self.neurons[dst_pop_id][j], 
                                             synapse_information, compartment, self.cell_params)
-                        self.neurons[dst_pop_id][j].internal_netcons.append( (self.neurons['Septal'][i].gid, ncs, compartment) )
+                        self.neurons[dst_pop_id][j].internal_netcons.append( (self.neurons['Septal'][i].gid, ncs,
+                                                                              compartment, compartment_idx) )
 
+    def load_netcons(self, connections_dict, src_population_ids, dst_population_ids, connectivity_type='internal connectivity'):
+        cell_numbers_dict = {}
+        if connectivity_type == 'internal connectivity':
+            cell_types = self.cell_params['cells']
+            for i, ctype in enumerate(cell_types):
+                cidx = self.internal_pop2id[ctype]
+                ncells = self.cell_params['ncells'][i]
+                cell_numbers_dict[cidx] = ncells
+        elif connectivity_type == 'external connectivity':
+            ext_types = list(self.arena_cells.keys())
+            for ctype in ext_types:
+                cidx = self.external_pop2id[ctype]
+                ncells = self.arena_cells[ctype]['ncells']
+                cell_numbers_dict[cidx] = ncells
+        else:
+            raise RuntimeError(f"unknown connectivity type {connectivity_type}")
+            
+
+        
+        for dst_pop_id in dst_population_ids:
+            dst_neurons = self.neurons[dst_pop_id]
+            for i in range(len(dst_neurons)):
+                netcon_count = 0
+                if not ((i in dst_neurons) and self.pc.gid_exists(dst_neurons[i].gid)):
+                    continue
+                dst_gid = dst_neurons[i].gid
+                connection_info = connections_dict[dst_gid]
+                src_gids = connection_info['src_gids']
+                comp_idxs = connection_info['compartment_idxs']
+                src_weights = connection_info['weights']
+                src_weights_upd = connection_info['weights_upd']
+                for src_pop_id in src_population_ids:
+                    if not dst_pop_id in self.cell_params[connectivity_type][src_pop_id]:
+                        continue
+                    synapse_information = self.cell_params[connectivity_type][src_pop_id][dst_pop_id]['synapse']
+                    src_offset = self.ctype_offsets[src_pop_id]
+                    src_ncells = cell_numbers_dict[src_pop_id]
+                    this_src_idxs = np.asarray(np.argwhere(np.logical_and(src_gids >= src_offset,
+                                                                          src_gids < src_offset + src_ncells)).flat)
+                    this_src_gids = src_gids[this_src_idxs]
+                    this_src_comp_idxs = comp_idxs[this_src_idxs]
+                    this_src_weights = src_weights[this_src_idxs]
+                    this_src_weights_upd = src_weights_upd[this_src_idxs]
+                    
+                    for src_gid, comp_idx, src_weight, src_weight_upd in zip(this_src_gids,
+                                                                             this_src_comp_idxs,
+                                                                             this_src_weights,
+                                                                             this_src_weights_upd):
+                        compartments = synapse_information['compartments']
+                        compartment  = compartments[comp_idx]
+                        ncs = create_netcon(self.pc, src_pop_id, dst_pop_id, src_gid, dst_neurons[i], 
+                                            synapse_information, compartment, self.cell_params,
+                                            weight0=src_weight, weight_upd=src_weight_upd)
+                        netcon_count += len(ncs)
+                        if connectivity_type == "internal connectivity":
+                            dst_neurons[i].internal_netcons.append( (src_gid, ncs, compartment, comp_idx) )
+                        elif connectivity_type == "external connectivity":
+                            if src_pop_id not in dst_neurons[i].external_netcons: 
+                                dst_neurons[i].external_netcons[src_pop_id] = []
+                            dst_neurons[i].external_netcons[src_pop_id].append( (src_gid, ncs, compartment, comp_idx) )
+                        else:
+                            raise RuntimeError(f"unknown connectivity type {connectivity_type}")
+                if int(self.pc.id()) == 0:
+                    logger.info(f"gid {dst_gid}: created {netcon_count} netcons")
+                            
     def get_cell_spikes(self, group_id):
         neurons = self.neurons[group_id]
         spike_times = {}
@@ -280,7 +354,112 @@ class Circuit(object):
                                     self.lfp.append(curr)
                     
         
-        
+def restore_netcons(pc, circ, input_filepath, root=0):
 
+    connections_dict = None
+    rank = int(pc.id())
+    nhost = int(pc.nhost())
+    if rank == root:
+        connections_data = np.load(input_filepath)
+        connections_dict = {int(k): v for k,v in connections_data.items()}
         
+    src_gids_list = []
+    pc.barrier()
+    for population_id in circ.neurons.keys():
+        if population_id == 'Septal': continue
+        ctype_offset = circ.ctype_offsets[population_id]
+        population_info = circ.neurons[population_id]
+        src_gids_list.append(np.asarray(list(population_info.keys())) + ctype_offset)
+    src_gids = np.concatenate(src_gids_list)
+    pc.barrier()
+    src_gids_per_rank = pc.py_gather(src_gids, root)
         
+    src_data = [{idx: connections_dict[idx] for idx in src_gids_per_rank[i] if idx in connections_dict}
+                for i in range(nhost)] if rank == root else None
+    connections_dict = pc.py_scatter(src_data, root)
+
+    dst_population_ids = list([circ.internal_pop2id[pop] for pop in circ.cell_params['cells']])
+    src_population_ids = list([circ.internal_pop2id[pop] for pop in circ.cell_params['cells']])
+    circ.load_netcons(connections_dict, src_population_ids, dst_population_ids, connectivity_type='internal connectivity')
+    src_population_ids = list([circ.external_pop2id[pop] for pop in list(circ.arena_cells.keys())])
+    circ.load_netcons(connections_dict, src_population_ids, dst_population_ids, connectivity_type='external connectivity')
+
+
+def save_netcon_data(pc, circ, save_filepath):
+    complete_weights = {}
+    for population_id in circ.neurons.keys():
+        if population_id == 'Septal': continue
+        ctype_offset = circ.ctype_offsets[population_id]
+        population_info = circ.neurons[population_id]
+        for cell_id in population_info.keys():
+            cell_gid = ctype_offset + int(cell_id)
+            connection_weights = []
+            connection_weights_upd = []
+            src_gids = []
+            compartment_idxs = []
+            cell_info = population_info[cell_id]
+            if not hasattr(cell_info, 'internal_netcons'):
+                continue
+            for (presynaptic_id, ncs, _, compartment_idx) in cell_info.internal_netcons:
+                for netcon in ncs:
+                    compartment_idxs.append(compartment_idx)
+                    src_gids.append(int(netcon.srcgid()))
+                    connection_weights.append(netcon.weight[0])
+                    if len(netcon.weight) == 3:
+                        connection_weights_upd.append(netcon.weight[1])
+                    else:
+                        connection_weights_upd.append(np.nan)
+            for external_id in cell_info.external_netcons.keys():
+                external_cell_info = cell_info.external_netcons[external_id]
+                for (idx,(presynaptic_gid, ncs, compartment, compartment_idx)) in enumerate(external_cell_info):
+                    for netcon in ncs:
+                        compartment_idxs.append(compartment_idx)
+                        src_gids.append(int(netcon.srcgid()))
+                        connection_weights.append(netcon.weight[0])
+                        if len(netcon.weight) == 3: 
+                            connection_weights_upd.append(netcon.weight[1])
+                        else:
+                            connection_weights_upd.append(np.nan)
+            connection_info = np.core.records.fromarrays((np.asarray(connection_weights, dtype=np.float32),
+                                                          np.asarray(connection_weights_upd, dtype=np.float32),
+                                                          np.asarray(src_gids, dtype=np.uint32),
+                                                          np.asarray(compartment_idxs, dtype=np.uint16)),
+                                                         names='weights,weights_upd,src_gids,compartment_idxs')
+            complete_weights[str(cell_gid)] = connection_info
+
+    all_complete_weights = pc.py_gather(complete_weights, 0)
+
+    if pc.id() == 0:
+        complete_weights = {}
+        for d in all_complete_weights:
+            complete_weights.update(d)
+        np.savez(save_filepath, **complete_weights)
+        
+    pc.barrier()
+
+    
+def save_v_vecs(pc, save_filepath, v_vecs):
+
+    v_vec_dict = { k: np.asarray(v, dtype=np.float32) for k,v in v_vecs.items() }
+    all_v_vecs = pc.py_gather(v_vec_dict, 0)
+
+    if pc.id() == 0:
+        v_vecs = {}
+        for d in all_v_vecs:
+            v_vecs.update([(str(k),v) for (k,v) in d.items()])
+        np.savez(save_filepath, **v_vecs)
+
+    pc.barrier()
+
+def save_spike_vecs(pc, save_filepath, *spike_time_dicts):
+
+    all_spike_dicts = pc.py_gather(spike_time_dicts, 0)
+
+    if pc.id() == 0:
+        spike_dict = {}
+        for ds in all_spike_dicts:
+            for d in ds:
+                spike_dict.update([(str(k),v) for (k,v) in d.items()])
+        np.savez(save_filepath, **spike_dict)
+
+    pc.barrier()

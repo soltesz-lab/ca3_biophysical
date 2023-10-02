@@ -63,6 +63,10 @@ def create_netcon(pc, srcid, dstid, src_gid, dst_cell, synapse_information, comp
         weight /= (float(params['scale']))
     ws = netcon_params.get('weight_scale', 1.0)
     weight *= float(ws)
+    weight0 = netcon_params.get('weight0', None)
+    weight_upd = netcon_params.get('weight_upd', None)
+    if weight0 is not None:
+        weight = weight0
     if type(synapse_type) is not list: 
         synapse_type = [synapse_type]
     ncs = []
@@ -81,6 +85,11 @@ def create_netcon(pc, srcid, dstid, src_gid, dst_cell, synapse_information, comp
         nc = pc.gid_connect(src_gid, syn_)
         nc.delay     = 1.
         nc.weight[0] = weight
+        if nc.wcnt() > 1:
+            if (weight_upd is not None) and (weight_upd != np.nan):
+                nc.weight[1] = weight_upd
+            else:
+                nc.weight[1] = 0.
         ncs.append(nc)
         
     return ncs
