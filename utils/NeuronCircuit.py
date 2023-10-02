@@ -263,6 +263,8 @@ class Circuit(object):
                                                                               compartment, compartment_idx) )
 
     def load_netcons(self, connections_dict, src_population_ids, dst_population_ids, connectivity_type='internal connectivity'):
+
+        rank = int(self.pc.id())
         cell_numbers_dict = {}
         if connectivity_type == 'internal connectivity':
             cell_types = self.cell_params['cells']
@@ -283,7 +285,7 @@ class Circuit(object):
         
         for dst_pop_id in dst_population_ids:
             dst_neurons = self.neurons[dst_pop_id]
-            for i in range(len(dst_neurons)):
+            for i in dst_neurons:
                 netcon_count = 0
                 if not ((i in dst_neurons) and self.pc.gid_exists(dst_neurons[i].gid)):
                     continue
