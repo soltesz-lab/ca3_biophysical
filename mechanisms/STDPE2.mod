@@ -79,7 +79,7 @@ DERIVATIVE state {
 }
 
 NET_RECEIVE(w (uS), A, tpre (ms)) {
-	INITIAL { A = 0  tpre = -1e9 }
+	INITIAL { tpre = -1e9 }
 	if (flag == 0) { : presynaptic spike  (after last post so depress)
 :		printf("entry flag=%g t=%g w=%g A=%g tpre=%g tpost=%g\n", flag, t, w, A, tpre, tpost)
 :		g = g + w + A	: only for single exp (BPG)

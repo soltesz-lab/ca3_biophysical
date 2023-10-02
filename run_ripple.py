@@ -22,7 +22,7 @@ from neuron.units import ms, mV
 h.nrnmpi_init()
 
 from SetupConnections import *
-from NeuronCircuit import Circuit, save_v_vecs, save_netcon_data, save_spike_vecs
+from NeuronCircuit import Circuit, save_v_vecs, save_spike_vecs, restore_netcons
 from analysis_utils import baks
 from simtime import SimTimeEvent
 
@@ -34,38 +34,16 @@ delay = 500.
 dt = 0.1
 
 params_path = os.path.join(model_home, 'params')
-ar = Arena(os.path.join(params_path, 'arenaparams_test.yaml'))
+ar = Arena(os.path.join(params_path, 'arenaparams_ripple.yaml'))
 ar.generate_population_firing_rates()
-ar.generate_cue_firing_rates('LEC', 1.0)
 
-
-cued = True
-
-fr = ar.cell_information['LEC']['cell info'][0]['firing rate']
-
-edge  = 12.5
-lp    = 1
 
 arena_size = ar.params['Arena']['arena size']
 bin_size   = ar.params['Arena']['bin size']
 mouse_speed = ar.params['Arena']['mouse speed']
 nlaps       = ar.params['Arena']['lap information']['nlaps']
 
-arena_map  = np.arange(0, 200,step=0.1)
-cued_positions  = np.linspace(edge, 200-edge, nlaps*lp)
-random_cue_locs = np.arange(len(cued_positions))
-np.random.shuffle(random_cue_locs)
-
 time_for_single_lap = arena_size / mouse_speed * 1000.
-
-frs_all = []
-for i in range(nlaps):
-    random_position = cued_positions[random_cue_locs[i]]
-    to_roll = int( ( 100. - random_position) / 0.1 )
-    fr_rolled = np.roll(fr, to_roll)
-    frs_all.append(fr_rolled)
-
-frs_all = np.asarray(frs_all)
 
 
 
@@ -74,7 +52,7 @@ frs_all = np.asarray(frs_all)
 
 place_information = {'place ids': [0], 'place fracs': [0.80]}
 
-diagram = WiringDiagram(os.path.join(params_path, 'circuitparams.yaml'), place_information)
+diagram = WiringDiagram(os.path.join(params_path, 'circuitparams_ripple.yaml'), place_information)
 diagram.generate_internal_connectivity()
 
 
@@ -95,7 +73,7 @@ print('generating spike times..')
 sys.stdout.flush()
 ar.generate_spike_times('MF', dt=dt, delay=delay)
 ar.generate_spike_times('MEC', dt=dt, delay=delay)
-ar.generate_spike_times('LEC', dt=dt, delay=delay, cued=cued)
+ar.generate_spike_times('LEC', dt=dt, delay=delay, cued=False)
 ar.generate_spike_times('Background', dt=dt, delay=delay)
 print('generated spike times..')
 sys.stdout.flush()
@@ -123,8 +101,8 @@ print('constructing circuit..')
 sys.stdout.flush()
 
 circuit = Circuit(params_prefix=params_path, 
-                  params_filename='circuitparams.yaml',
-                  arena_params_filename='arenaparams_test.yaml', 
+                  params_filename='circuitparams_ripple.yaml',
+                  arena_params_filename='arenaparams_ripple.yaml', 
                   internal_pop2id=diagram.pop2id, 
                   external_pop2id=diagram.external_pop2id, 
                   external_spike_times = {100: mf_spike_times,
@@ -135,14 +113,17 @@ print('building cells..')
 sys.stdout.flush()
 circuit.build_cells()
 
-circuit.build_internal_netcons(diagram.internal_adj_matrices, diagram.internal_ws)
-circuit.build_external_netcons(100, diagram.external_adj_matrices[100], diagram.external_ws[100])
-circuit.build_external_netcons(101, diagram.external_adj_matrices[101], diagram.external_ws[101])
-circuit.build_external_netcons(102, diagram.external_adj_matrices[102], diagram.external_ws[102])
-circuit.build_external_netcons(103, diagram.external_adj_matrices[103], diagram.external_ws[103])
+#circuit.build_internal_netcons(diagram.internal_adj_matrices, diagram.internal_ws)
+#circuit.build_external_netcons(100, diagram.external_adj_matrices[100], diagram.external_ws[100])
+#circuit.build_external_netcons(101, diagram.external_adj_matrices[101], diagram.external_ws[101])
+#circuit.build_external_netcons(102, diagram.external_adj_matrices[102], diagram.external_ws[102])
+#circuit.build_external_netcons(103, diagram.external_adj_matrices[103], diagram.external_ws[103])
 #circuit.record_lfp([0,1])
 #circuit.build_septal_netcons(diagram.septal_adj_matrices)
 
+pc = circuit.pc
+
+restore_netcons(pc, circuit, "params/0801-cue-ee-ei-nlaps-1-dt-zerodot1-scale-2-v1.npz")
 
 
 import time
@@ -174,7 +155,6 @@ def get_population_voltages(c,pop_id):
         v_vec_dict[gid] = v_vec
     return v_vec_dict
 
-pc = circuit.pc
 
 exc_v_vecs     = get_population_voltages(circuit, 0)
 #pvbc_v_vecs    = get_population_voltages(circuit, 1)
@@ -193,7 +173,6 @@ tic = time.time()
 h.dt = 0.025
 h.celsius = 37.
 h.tstop =  time_for_single_lap * nlaps + 500
-h.tstop = 1000.
 
 if pc.id() == 0:
     print(f'starting simulation for {nlaps} lap(s) until {h.tstop} ms..')
@@ -220,7 +199,7 @@ ext_spikes_MEC  = get_ext_population_spikes(circuit, 101)
 ext_spikes_LEC  = get_ext_population_spikes(circuit, 102)
 ext_spikes_Bk   = get_ext_population_spikes(circuit, 103)
 
-save_spike_vecs(pc, f"data/ext_spikes_0801-cue-ee-ei-nlaps-{nlaps}",
+save_spike_vecs(pc, f"data/ext_spikes_1001-ripple-nlaps-{nlaps}",
                 ext_spikes_MF,
                 ext_spikes_MEC,
                 ext_spikes_LEC,
@@ -229,14 +208,14 @@ save_spike_vecs(pc, f"data/ext_spikes_0801-cue-ee-ei-nlaps-{nlaps}",
 cell_spikes_PC    = get_cell_population_spikes(circuit,0)
 cell_spikes_PVBC  = get_cell_population_spikes(circuit,1)
 
-save_spike_vecs(pc, f"data/cell_spikes_0801-cue-ee-ei-nlaps-{nlaps}",
+save_spike_vecs(pc, f"data/cell_spikes_1001-ripple-nlaps-{nlaps}",
                 cell_spikes_PC,
                 cell_spikes_PVBC)
                 
 
-save_v_vecs(pc, f"data/v_vecs_0801-cue-ee-ei-nlaps-{nlaps}", exc_v_vecs)
+save_v_vecs(pc, f"data/v_vecs_1001-ripple-nlaps-{nlaps}", exc_v_vecs)
         
-save_netcon_data(pc, circuit, f"params/0801-cue-ee-ei-nlaps-{nlaps}-dt-zerodot1-scale-2-v1.npz")
+
 
 pc.runworker()
 pc.done()

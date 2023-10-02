@@ -433,7 +433,6 @@ class WiringDiagram(object):
                 except:
                     continue
                    #print('no connection between src %s and dst %s' % (popA, popB) )
-
                     
     def generate_external_connectivity(self, external_information, **kwargs):
         
