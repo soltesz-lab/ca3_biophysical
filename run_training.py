@@ -9,6 +9,7 @@ from pprint import pprint
 import sys, os
 import pickle as pkl
 from collections import defaultdict
+import logging
 
 from os.path import expanduser
 home = expanduser("~")
@@ -16,6 +17,9 @@ model_home = os.path.join(home, 'src/model/ca3_biophysical/')
 sys.path.append(os.path.join(home, 'model/ca3_biophysical/utils'))
 sys.path.append(os.path.join(home, 'model/ca3_biophysical/cells'))
 sys.path.append(os.path.join(home, 'bin/nrnpython3/lib/python'))
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 from neuron import h
 from neuron.units import ms, mV
@@ -33,8 +37,10 @@ sys.stdout.flush()
 delay = 500.
 dt = 0.1
 
+pc = h.ParallelContext()
+
 params_path = os.path.join(model_home, 'params')
-ar = Arena(os.path.join(params_path, 'arenaparams_test.yaml'))
+ar = Arena(os.path.join(params_path, 'arenaparams.yaml'))
 ar.generate_population_firing_rates()
 ar.generate_cue_firing_rates('LEC', 1.0)
 
@@ -54,7 +60,11 @@ nlaps       = ar.params['Arena']['lap information']['nlaps']
 arena_map  = np.arange(0, 200,step=0.1)
 cued_positions  = np.linspace(edge, 200-edge, nlaps*lp)
 random_cue_locs = np.arange(len(cued_positions))
-np.random.shuffle(random_cue_locs)
+
+if pc.id() == 0:
+    np.random.shuffle(random_cue_locs)
+    logger.info(f"random_cue_locs = {random_cue_locs}")
+random_cue_locs = pc.py_broadcast(random_cue_locs, 0)
 
 time_for_single_lap = arena_size / mouse_speed * 1000.
 
@@ -124,7 +134,7 @@ sys.stdout.flush()
 
 circuit = Circuit(params_prefix=params_path, 
                   params_filename='circuitparams.yaml',
-                  arena_params_filename='arenaparams_test.yaml', 
+                  arena_params_filename='arenaparams.yaml', 
                   internal_pop2id=diagram.pop2id, 
                   external_pop2id=diagram.external_pop2id, 
                   external_spike_times = {100: mf_spike_times,
@@ -162,14 +172,14 @@ def get_ext_population_spikes(c,pop_id):
     return spike_vec_dict
 
 
-def get_population_voltages(c,pop_id):
+def get_population_voltages(c,pop_id,rec_dt=0.05):
     v_vec_dict = {}
     for cid, cell in c.neurons[pop_id].items():
         v_vec = h.Vector()
         try:
-            v_vec.record(cell.axon(0.5)._ref_v)
+            v_vec.record(cell.axon(0.5)._ref_v, rec_dt)
         except:
-            v_vec.record(cell.soma(0.5)._ref_v)
+            v_vec.record(cell.soma(0.5)._ref_v, rec_dt)
         gid = c.ctype_offsets[pop_id] + cid
         v_vec_dict[gid] = v_vec
     return v_vec_dict
@@ -336,12 +346,12 @@ save_spike_vecs(pc, f"data/cell_spikes_0801-cue-ee-ei-nlaps-{nlaps}",
                 cell_spikes_PC,
                 cell_spikes_PVBC)
                 
-
-save_v_vecs(pc, f"data/v_vecs_0801-cue-ee-ei-nlaps-{nlaps}", exc_v_vecs)
         
 save_connections(pc, circuit, f"data/0801-cue-ee-ei-connections.npz")
 
 save_connection_weights(pc, circuit, f"params/0801-cue-ee-ei-nlaps-{nlaps}-dt-zerodot1-scale-2-v1.npz")
+
+save_v_vecs(pc, f"data/v_vecs_0801-cue-ee-ei-nlaps-{nlaps}", exc_v_vecs)
 
 pc.runworker()
 pc.done()
