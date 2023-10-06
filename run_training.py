@@ -85,11 +85,16 @@ frs_all = np.asarray(frs_all)
 place_information = {'place ids': [0], 'place fracs': [0.80]}
 
 diagram = WiringDiagram(os.path.join(params_path, 'circuitparams.yaml'), place_information)
-diagram.generate_internal_connectivity()
-
 
 place_ids = diagram.place_information[0]['place']
 cue_ids = diagram.place_information[0]['not place']
+
+internal_kwargs = {}
+internal_kwargs['place information'] = diagram.place_information
+internal_kwargs['cue information'] = diagram.place_information
+
+diagram.generate_internal_connectivity(**internal_kwargs)
+
 
 external_kwargs = {}
 external_kwargs['place information'] = diagram.place_information
@@ -203,7 +208,6 @@ tic = time.time()
 h.dt = 0.025
 h.celsius = 37.
 h.tstop =  time_for_single_lap * nlaps + 500
-h.tstop = 1000.
 
 if pc.id() == 0:
     print(f'starting simulation for {nlaps} lap(s) until {h.tstop} ms..')

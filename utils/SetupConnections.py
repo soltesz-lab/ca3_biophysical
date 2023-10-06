@@ -182,7 +182,7 @@ class Arena(object):
             
     def generate_cue_firing_rates(self, population, percent_cue, seed=1e9):
             rnd = np.random.RandomState(seed=int(seed))
-            noise_fr    = self.params['Spatial'][population]['noise']['min rate']
+            noise_fr    = self.params['Spatial'][population]['noise']['mean rate']
             ncells      = self.params['Spatial'][population]['ncells']
             
             ncue_cells = int(ncells*percent_cue)
@@ -218,8 +218,11 @@ class Arena(object):
         population_info = self.cell_information[population]
         ncells = population_info['ncells']
         gids   = range(int(self.pc.id()), ncells, int(self.pc.nhost()))
+
         
-        nfr      = self.params['Spatial'][population]['noise']['min rate']
+        nfr      = np.clip(self.arena_rnd.normal(self.params['Spatial'][population]['noise']['mean rate'],
+                                                 scale=self.params['Spatial'][population]['noise']['scale']),
+                           0.0, None)
         noise_fr = [nfr for _ in range(len(self.arena_map))]
         firing_rates = {}
         for gid in gids:
@@ -406,7 +409,16 @@ class WiringDiagram(object):
             ctype_offset += ncells[i]
                 
         
-    def generate_internal_connectivity(self):
+    def generate_internal_connectivity(self, **kwargs):
+
+        PYR_cue_weight_mean = 1.0
+        PYR_cue_weight_scale = 0.025
+        PYR_place_weight_mean = 0.6
+        PYR_place_weight_scale = 0.025
+
+        place_information  = kwargs['place information']
+        cue_information = kwargs['cue information']
+        
         self.internal_adj_matrices = {}
         self.internal_ws = {}
         for popA in self.pops:
@@ -418,16 +430,37 @@ class WiringDiagram(object):
                 popA_pos = self._get_soma_coordinates(self.wiring_information[popA]['cell info'])
                 popB_pos = self._get_soma_coordinates(self.wiring_information[popB]['cell info'])
                 nA, nB = self.wiring_information[popA]['ncells'], self.wiring_information[popB]['ncells']
+
+                weight_scale_func = None
+                if popA_id == 0 and popB_id == 0:
+                    place_gids = place_information[popB_id]['place']
+                    place_gid_set = set(place_gids)
+                
+                    cue_gids = cue_information[popB_id]['not place']
+                    cue_gid_set = set(cue_gids)
+
+                    PYR_cue_weights = np.clip(self.internal_con_rnd.normal(PYR_cue_weight_mean,
+                                                                           PYR_cue_weight_scale,
+                                                                           nB), 1e-4, None)
+                    PYR_place_weights = np.clip(self.internal_con_rnd.normal(PYR_place_weight_mean,
+                                                                             PYR_place_weight_scale,
+                                                                             nB), 1e-4, None)
+                    weight_scale_func = None
+                    weight_scale_func = lambda dst_gid, src_gid: PYR_cue_weights[dst_gid] if src_gid in cue_gid_set else PYR_place_weights[dst_gid]
+
                 try:
                     convergence = self.params['internal connectivity'][popA_id][popB_id]['probability']
                     same_pop = False
+
                     if popA == popB: same_pop=True
                     if popA_id == 0 and popB_id == 0:
                         alpha = 0.0125
                         am, ws = self.create_adjacency_matrix(popA_pos, popB_pos, nA, nB, convergence, self.internal_con_rnd, 
-                                                          inv_func=('exp', alpha), same_pop=same_pop, src_id=popA_id)
+                                                              inv_func=('exp', alpha), same_pop=same_pop, src_id=popA_id,
+                                                              weight_scale_func=weight_scale_func)
                     else:
-                        am, ws = self.create_adjacency_matrix(None, None, nA, nB, convergence, self.internal_con_rnd, same_pop=same_pop)   
+                        am, ws = self.create_adjacency_matrix(None, None, nA, nB, convergence, self.internal_con_rnd, same_pop=same_pop,
+                                                              weight_scale_func=weight_scale_func)
                     self.internal_adj_matrices[popA_id][popB_id] = am
                     self.internal_ws[popA_id][popB_id] = ws
                 except:
@@ -446,12 +479,17 @@ class WiringDiagram(object):
         external_pops = list(external_information.keys())
         external_ids  = [external_information[pop]['id'] for pop in external_pops]
 
-        LEC_cue_weight_mean = 0.9
+        MF_cue_weight_mean = 0.5
+        MF_cue_weight_scale = 0.025
+        MF_place_weight_mean = 1.0
+        MF_place_weight_scale = 0.025
+
+        LEC_cue_weight_mean = 1.0
         LEC_cue_weight_scale = 0.025
         LEC_place_weight_mean = 0.2
         LEC_place_weight_scale = 0.025
 
-        MEC_cue_weight_mean = 0.3
+        MEC_cue_weight_mean = 0.4
         MEC_cue_weight_scale = 0.025
         MEC_place_weight_mean = 1.0
         MEC_place_weight_scale = 0.025
@@ -518,20 +556,28 @@ class WiringDiagram(object):
                       f"src_id in external_place_ids = {src_id in external_place_ids} ")
 
                 
+                MF_cue_weights = np.clip(self.external_con_rnd.normal(MF_cue_weight_mean,
+                                                                      MF_cue_weight_scale,
+                                                                      ndst), 1e-3, None)
+                MF_place_weights = np.clip(self.external_con_rnd.normal(MF_place_weight_mean,
+                                                                        MF_place_weight_scale,
+                                                                        ndst), 1e-3, None)
                 LEC_cue_weights = np.clip(self.external_con_rnd.normal(LEC_cue_weight_mean,
                                                                        LEC_cue_weight_scale,
-                                                                       ndst), 0.0, None)
+                                                                       ndst), 1e-3, None)
                 LEC_place_weights = np.clip(self.external_con_rnd.normal(LEC_place_weight_mean,
                                                                          LEC_place_weight_scale,
-                                                                         ndst), 0.0, None)
+                                                                         ndst), 1e-3, None)
                 MEC_cue_weights = np.clip(self.external_con_rnd.normal(MEC_cue_weight_mean,
                                                                        MEC_cue_weight_scale,
-                                                                       ndst), 0.0, None)
+                                                                       ndst), 1e-3, None)
                 MEC_place_weights = np.clip(self.external_con_rnd.normal(MEC_place_weight_mean,
                                                                          MEC_place_weight_scale,
-                                                                         ndst), 0.0, None)
+                                                                         ndst), 1e-3, None)
                                             
                 weight_scale_func = None
+                if dst_pop_id == 0 and src_id == 100:
+                    weight_scale_func = lambda dst_gid, src_gid: MF_cue_weights[dst_gid] if dst_gid in cue_gid_set else MF_place_weights[dst_gid]
                 if dst_pop_id == 0 and src_id == 101:
                     weight_scale_func = lambda dst_gid, src_gid: MEC_cue_weights[dst_gid] if dst_gid in cue_gid_set else MEC_place_weights[dst_gid]
                 if dst_pop_id == 0 and src_id == 102:
@@ -649,7 +695,7 @@ class WiringDiagram(object):
             for gid in presynaptic_gids:
                 adj_mat[gid,d] += 1
                 if weight_scale_func is not None:
-                    weight_scales[(gid,d)] = weight_scale_func(gid, d)
+                    weight_scales[(gid,d)] = weight_scale_func(d, gid)
                     
         return adj_mat, weight_scales
                 

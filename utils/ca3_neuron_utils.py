@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 from neuron import h
 
 def _make_synapse(stype, compartment, weight, synapse_information, srcid, dstid, dst_cell, c, params):
@@ -14,7 +15,7 @@ def _make_synapse(stype, compartment, weight, synapse_information, srcid, dstid,
         syn_params['e']    = -75.0
         syn_params['tau1'] = 35.0
         syn_params['tau2'] = 100.0
-    elif stype =='STDPE2' or stype == 'STDPE2ASYM':  
+    elif stype =='STDPE2' or stype == 'STDPE2ASYM':
         if dstid == 0:
             syn_params = dst_cell.get_syn_parameters(compartment, stype)
         else:
@@ -24,13 +25,13 @@ def _make_synapse(stype, compartment, weight, synapse_information, srcid, dstid,
         pparams = None
         if stype == 'STDPE2': pparams = params['symplasticity']
         else: pparams = params['asymplasticity']
+        
         syn_params['p']  = pparams.get('potentiation', 1.0)
         syn_params['d']  = pparams.get('depression', 0.4)
         syn_params['thresh'] = pparams.get('thresh', -10.)
         syn_params['wmax']   = pparams.get('wmax_scaler', 1.0) * weight
         syn_params['dtau']   = pparams.get('dtau', 34.0)
         syn_params['ptau']   = pparams.get('ptau', 17.0)   
-
         syn_params['p'] = synapse_information.get('potentiation', syn_params['p']) / params['scale']
         syn_params['d'] = synapse_information.get('depression', syn_params['d']) / params['scale']
         syn_params['dtau']   = synapse_information.get('dtau', syn_params['dtau'])
@@ -62,6 +63,7 @@ def create_netcon(pc, srcid, dstid, src_gid, dst_cell, synapse_information, comp
     if params['scale'] > 1:
         weight /= (float(params['scale']))
     ws = netcon_params.get('weight_scale', 1.0)
+        
     weight *= float(ws)
     weight0 = netcon_params.get('weight0', None)
     weight_upd = netcon_params.get('weight_upd', None)
@@ -71,13 +73,22 @@ def create_netcon(pc, srcid, dstid, src_gid, dst_cell, synapse_information, comp
         synapse_type = [synapse_type]
     ncs = []
     for idx, stype in enumerate(synapse_type):
+        syn_params = copy.deepcopy(params)
+        if stype =='STDPE2':
+            if ('weight_scale' in netcon_params):
+                syn_params['symplasticity']['wmax_scaler'] = params['symplasticity']['wmax_scaler'] * ws
+        elif stype == 'STDPE2ASYM':
+            if ('weight_scale' in netcon_params):
+                syn_params['asymplasticity']['wmax_scaler'] = params['asymplasticity']['wmax_scaler'] * ws
+
         c = None
         if srcid not in dst_cell.synGroups[stype][compartment]: 
             c = getattr(dst_cell, compartment)
             dst_cell.synGroups[stype][compartment][srcid] = []
         syn_ = None
         if c is not None: # if synape doesn't exist, build it
-            syn_ = _make_synapse(stype, compartment, weight, synapse_information, srcid, dstid, dst_cell, c, params)
+            syn_ = _make_synapse(stype, compartment, weight, synapse_information,
+                                 srcid, dstid, dst_cell, c, syn_params)
             dst_cell.synGroups[stype][compartment][srcid].append(syn_)
         else:
             syn_ = dst_cell.synGroups[stype][compartment][srcid][0]
@@ -85,11 +96,14 @@ def create_netcon(pc, srcid, dstid, src_gid, dst_cell, synapse_information, comp
         nc = pc.gid_connect(src_gid, syn_)
         nc.delay     = 1.
         nc.weight[0] = weight
-        if nc.wcnt() > 1:
-            if (weight_upd is not None) and (weight_upd != np.nan):
+        if stype =='STDPE2' or stype == 'STDPE2ASYM':
+            nc.weight[1] = 0.
+        if (weight_upd is not None) and (not(np.isnan(weight_upd))):
+            if stype =='STDPE2' or stype == 'STDPE2ASYM':
                 nc.weight[1] = weight_upd
             else:
-                nc.weight[1] = 0.
+                nc.weight[0] = weight_upd
+
         ncs.append(nc)
         
     return ncs

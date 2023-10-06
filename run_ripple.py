@@ -53,11 +53,14 @@ time_for_single_lap = arena_size / mouse_speed * 1000.
 place_information = {'place ids': [0], 'place fracs': [0.80]}
 
 diagram = WiringDiagram(os.path.join(params_path, 'circuitparams_ripple.yaml'), place_information)
-diagram.generate_internal_connectivity()
-
-
 place_ids = diagram.place_information[0]['place']
 cue_ids = diagram.place_information[0]['not place']
+
+internal_kwargs = {}
+internal_kwargs['place information'] = diagram.place_information
+internal_kwargs['cue information'] = diagram.place_information
+
+diagram.generate_internal_connectivity(**internal_kwargs)
 
 external_kwargs = {}
 external_kwargs['place information'] = diagram.place_information
@@ -123,7 +126,7 @@ circuit.build_cells()
 
 pc = circuit.pc
 
-restore_netcons(pc, circuit, "params/0801-cue-ee-ei-nlaps-1-dt-zerodot1-scale-2-v1.npz")
+restore_netcons(pc, circuit, "params/0801-cue-ee-ei-nlaps-10-dt-zerodot1-scale-2-v1.npz")
 
 
 import time
@@ -157,7 +160,7 @@ def get_population_voltages(c,pop_id):
 
 
 exc_v_vecs     = get_population_voltages(circuit, 0)
-#pvbc_v_vecs    = get_population_voltages(circuit, 1)
+pvbc_v_vecs    = get_population_voltages(circuit, 1)
 # aac_v_vecs   = get_population_voltages(2)
 # bis_v_vecs   = get_population_voltages(3)
 # olm_v_vecs   = get_population_voltages(4)
@@ -213,7 +216,10 @@ save_spike_vecs(pc, f"data/cell_spikes_1001-ripple-nlaps-{nlaps}",
                 cell_spikes_PVBC)
                 
 
-save_v_vecs(pc, f"data/v_vecs_1001-ripple-nlaps-{nlaps}", exc_v_vecs)
+all_v_vecs = exc_v_vecs
+all_v_vecs.update(pvbc_v_vecs)
+
+save_v_vecs(pc, f"data/v_vecs_1001-ripple-nlaps-{nlaps}", all_v_vecs)
         
 
 
