@@ -266,7 +266,6 @@ class Arena(object):
             if (bin2times.shape[0] > current_full_fr.shape[0]): bin2times = bin2times[:-1]
             spike_times = np.asarray(get_inhom_poisson_spike_times_by_thinning(current_full_fr, bin2times, dt=dt, delay=delay),
                                      dtype='float32')
-            #print(f"population {population}: gid {gid}: fr = {current_full_fr} spike_times = {spike_times}")
             self.cell_information[population]['cell info'][gid]['spike times'] = spike_times
 
             
@@ -274,16 +273,16 @@ def generate_soma_positions(ncells, maxpos=1.):
     positions = np.linspace(0, maxpos, ncells)
     return { i: positions[i] for i in range(ncells) }
 
-def soma_positions_to_field_center(volume_positions, arena_size):
-    gids       = list(volume_positions.keys())
-    volume_end = np.max(list(volume_positions.values()))
-    scaling    = arena_size / float(volume_end)
+def soma_positions_to_field_center(volume_positions, arena_size, maxpos=1.):
+
+    positions = np.linspace(0, maxpos, 100)
+    centers = np.linspace(0, arena_size, 100)
+    spatial_ip = Akima1DInterpolator(positions, centers)
     
     spatial_positions = {}
-    for gid in gids:
+    for gid in volume_positions.keys():
         gid_pos     = volume_positions[gid]
-        spatial_pos = gid_pos * scaling
-        spatial_positions[gid] = spatial_pos
+        spatial_positions[gid] = spatial_ip(gid_pos)
     return spatial_positions
 
 
@@ -301,20 +300,23 @@ def generate_place_firing_maps(field_centers, peak_rates, peak_rate_probs, min_r
     
 def generate_grid_firing_maps(field_centers, peak_rates, peak_rate_probs, min_rate, diameter, gap, arena_map, rnd):
     firing_rates = {}
+    arena_min, arena_max = np.min(arena_map), np.max(arena_map)
     for gid in list(field_centers.keys()):
+
+        
         max_rate = rnd.choice(peak_rates, p=peak_rate_probs)
         current_center = field_centers[gid]
         current_firing_rate    = np.asarray(place_field_fr(current_center, arena_map, max_rate, 
                                                            diameter), dtype='float32')
-        arena_min, arena_max = np.min(arena_map), np.max(arena_map)
         current_pos = current_center - gap
-        while (current_pos >= 0):
+        while (current_pos >= arena_min):
             hopped_fr = np.asarray(place_field_fr(current_pos, arena_map, max_rate, 
                                                   diameter), dtype='float32')
             current_firing_rate += hopped_fr
             current_pos -= gap
         current_pos = current_center + gap
         while (current_pos <= arena_max):
+
             hopped_fr = np.asarray(place_field_fr(current_pos, arena_map, max_rate, 
                                                   diameter), dtype='float32')
             current_firing_rate += hopped_fr
@@ -550,12 +552,6 @@ class WiringDiagram(object):
                 if cue_connection_flag:
                     logger.info(f"cue_information[dst_pop_id]['not place'] = {cue_information[dst_pop_id]['not place']} ")
                 
-                print(f"src_id = {src_id} dst_pop_id = {dst_pop_id} "
-                      f"external_place_ids = {external_place_ids} external_cue_ids = {external_cue_ids} "
-                      f"src_id in external_cue_ids = {src_id in external_cue_ids} "
-                      f"src_id in external_place_ids = {src_id in external_place_ids} ")
-
-                
                 MF_cue_weights = np.clip(self.external_con_rnd.normal(MF_cue_weight_mean,
                                                                       MF_cue_weight_scale,
                                                                       ndst), 1e-3, None)
@@ -679,6 +675,7 @@ class WiringDiagram(object):
                                                   size=(int(effective_convergence),))
                 presynaptic_gids = self.pc.py_broadcast(presynaptic_gids, 0)
 
+                
 #                 if (src_id == 0) and (d in self.place_information[0]['place']):
 #                     if d > 0 and d - 1 not in presynaptic_gids:
 #                         presynaptic_gids[0] = d - 1
