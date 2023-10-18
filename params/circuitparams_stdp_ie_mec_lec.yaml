@@ -35,8 +35,10 @@ Circuit:
                   cue:
                     mean: 0.6
                     scale: 0.025
-                  place:
-                    mean: 
+                  place: 
+                    mean: 1.0
+                    scale: 0.025
+                    
             1: # PYR -> PVBC
                 probability: 70 #35
                 synapse:
@@ -100,7 +102,7 @@ Circuit:
             0: # PVBC-> PYR
                 probability: 10 #5
                 synapse:
-                    type: 'GABAA' #'STDPE2'
+                    type: 'STDPE2'
                     potentiation: 1.5e-5 #1.0e-5 #2.5e-5 #2.0e-5 #2.5e-5 #2.0e-5 #1.5e-5 #1.0e-5
                     depression: 4.0e-5
                     weight1: 0.0014 #0.0014 for E>E + E>I #0.0018 for E>E #1.0e-3 for E>E + I>E
@@ -108,6 +110,13 @@ Circuit:
                     tau2: 6.2
                     e: -75.
                     compartments: ['soma']
+                gradient:
+                  cue:
+                    mean: 0.5
+                    scale: 0.025
+                  place:
+                    mean: 1.0
+                    scale: 0.025
                         
             1: # PVBC -> PVBC
                 probability: 2 #1
@@ -262,6 +271,14 @@ Circuit:
                     ptau: 17.0
                     dtau: 34.0
                     compartments: ['lucidum', 'oriensProximal']
+                gradient:
+                  cue:
+                    mean: 0.3
+                    scale: 0.025
+                  place:
+                    mean: 1.0
+                    scale: 0.025
+
             1: # PVBC
                 probability: 412 #336
                 synapse:
@@ -321,9 +338,16 @@ Circuit:
             0: 
                 probability: 10
                 synapse:
-                    type: ['AMPA', 'NMDA']
+                    type: ['STDPE2', 'NMDA']
                     weight1: 3.35e-4 #4.0e-4 #6.0e-4
                     compartments: ['lacunosumMEC']
+                gradient:
+                  cue:
+                    mean: 0.4
+                    scale: 0.025
+                  place:
+                    mean: 1.0
+                    scale: 0.025
             1:
                 probability: 4
                 synapse:
@@ -374,10 +398,17 @@ Circuit:
             0: 
                 probability: 8
                 synapse:
-                    type: ['AMPA', 'NMDA']
-                    weight1: 9.0e-4 #3.4e-4 #5.0e-3 for E->E and I->E 
+                    type: ['STDPE2', 'NMDA']
+                    weight1: 5.0e-3 #3.4e-4 #5.0e-3 for E->E and I->E 
                     potentiation: 2.5e-5 #1.0e-5 #3.75e-6 #2.0e-5 
                     compartments: ['lacunosumLEC']
+                gradient:
+                  cue:
+                    mean: 1.0
+                    scale: 0.025
+                  place:
+                    mean: 0.2
+                    scale: 0.025
             1:
                 probability: 4
                 synapse:

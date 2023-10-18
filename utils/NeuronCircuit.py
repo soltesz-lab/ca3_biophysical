@@ -357,7 +357,7 @@ class Circuit(object):
                                     self.lfp.append(curr)
                     
         
-def restore_netcons(pc, circ, input_filepath, root=0):
+def restore_netcons(pc, circ, input_filepath, dst_population_ids=None, root=0):
 
     connections_dict = None
     rank = int(pc.id())
@@ -381,7 +381,8 @@ def restore_netcons(pc, circ, input_filepath, root=0):
                 for i in range(nhost)] if rank == root else None
     connections_dict = pc.py_scatter(src_data, root)
 
-    dst_population_ids = list([circ.internal_pop2id[pop] for pop in circ.cell_params['cells']])
+    if dst_population_ids is None:
+        dst_population_ids = list([circ.internal_pop2id[pop] for pop in circ.cell_params['cells']])
     src_population_ids = list([circ.internal_pop2id[pop] for pop in circ.cell_params['cells']])
     circ.load_netcons(connections_dict, src_population_ids, dst_population_ids, connectivity_type='internal connectivity')
     src_population_ids = list([circ.external_pop2id[pop] for pop in list(circ.arena_cells.keys())])

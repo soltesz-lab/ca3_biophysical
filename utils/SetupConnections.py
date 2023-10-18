@@ -413,11 +413,6 @@ class WiringDiagram(object):
         
     def generate_internal_connectivity(self, **kwargs):
 
-        PYR_cue_weight_mean = 1.0
-        PYR_cue_weight_scale = 0.025
-        PYR_place_weight_mean = 0.6
-        PYR_place_weight_scale = 0.025
-
         place_information  = kwargs['place information']
         cue_information = kwargs['cue information']
         
@@ -434,27 +429,48 @@ class WiringDiagram(object):
                 nA, nB = self.wiring_information[popA]['ncells'], self.wiring_information[popB]['ncells']
 
                 weight_scale_func = None
-                if popA_id == 0 and popB_id == 0:
+                
+                same_pop = False
+
+                if popA == popB: same_pop=True
+
+                place_gid_set = None
+                cue_gid_set = None
+
+                if popB_id in place_information:
                     place_gids = place_information[popB_id]['place']
                     place_gid_set = set(place_gids)
-                
+                    
                     cue_gids = cue_information[popB_id]['not place']
                     cue_gid_set = set(cue_gids)
 
-                    PYR_cue_weights = np.clip(self.internal_con_rnd.normal(PYR_cue_weight_mean,
-                                                                           PYR_cue_weight_scale,
-                                                                           nB), 1e-4, None)
-                    PYR_place_weights = np.clip(self.internal_con_rnd.normal(PYR_place_weight_mean,
-                                                                             PYR_place_weight_scale,
-                                                                             nB), 1e-4, None)
+                cue_weights = None
+                place_weights = None
+                weight_scale_func = None
+                gradient = self.params['internal connectivity'][popA_id][popB_id].get('gradient', None)
+                
+                if gradient is not None:
+                    cue_weight_mean = gradient['cue']['mean']
+                    cue_weight_scale = gradient['cue']['scale']
+                    place_weight_mean = gradient['place']['mean']
+                    place_weight_scale = gradient['place']['scale']
+                    cue_weights = np.clip(self.external_con_rnd.normal(cue_weight_mean,
+                                                                       cue_weight_scale,
+                                                                       nB), 1e-4, None)
+                    place_weights = np.clip(self.external_con_rnd.normal(place_weight_mean,
+                                                                         place_weight_scale,
+                                                                         nB), 1e-4, None)
+                                            
+
                     weight_scale_func = None
-                    weight_scale_func = lambda dst_gid, src_gid: PYR_cue_weights[dst_gid] if src_gid in cue_gid_set else PYR_place_weights[dst_gid]
+                    if same_pop:
+                        weight_scale_func = lambda dst_gid, src_gid: cue_weights[dst_gid] if src_gid in cue_gid_set else place_weights[dst_gid]
+                    else:
+                        weight_scale_func = lambda dst_gid, src_gid: cue_weights[dst_gid] if dst_gid in cue_gid_set else place_weights[dst_gid]
+                        
 
                 try:
                     convergence = self.params['internal connectivity'][popA_id][popB_id]['probability']
-                    same_pop = False
-
-                    if popA == popB: same_pop=True
                     if popA_id == 0 and popB_id == 0:
                         alpha = 0.0125
                         am, ws = self.create_adjacency_matrix(popA_pos, popB_pos, nA, nB, convergence, self.internal_con_rnd, 
@@ -480,21 +496,6 @@ class WiringDiagram(object):
         
         external_pops = list(external_information.keys())
         external_ids  = [external_information[pop]['id'] for pop in external_pops]
-
-        MF_cue_weight_mean = 0.5
-        MF_cue_weight_scale = 0.025
-        MF_place_weight_mean = 1.0
-        MF_place_weight_scale = 0.025
-
-        LEC_cue_weight_mean = 1.0
-        LEC_cue_weight_scale = 0.025
-        LEC_place_weight_mean = 0.2
-        LEC_place_weight_scale = 0.025
-
-        MEC_cue_weight_mean = 0.4
-        MEC_cue_weight_scale = 0.025
-        MEC_place_weight_mean = 1.0
-        MEC_place_weight_scale = 0.025
         
         ctype_offset = 0
         for pop in self.wiring_information.keys():
@@ -551,33 +552,26 @@ class WiringDiagram(object):
                             f"dst_gids_to_connect_to = {dst_gids_to_connect_to}")
                 if cue_connection_flag:
                     logger.info(f"cue_information[dst_pop_id]['not place'] = {cue_information[dst_pop_id]['not place']} ")
-                
-                MF_cue_weights = np.clip(self.external_con_rnd.normal(MF_cue_weight_mean,
-                                                                      MF_cue_weight_scale,
-                                                                      ndst), 1e-3, None)
-                MF_place_weights = np.clip(self.external_con_rnd.normal(MF_place_weight_mean,
-                                                                        MF_place_weight_scale,
-                                                                        ndst), 1e-3, None)
-                LEC_cue_weights = np.clip(self.external_con_rnd.normal(LEC_cue_weight_mean,
-                                                                       LEC_cue_weight_scale,
-                                                                       ndst), 1e-3, None)
-                LEC_place_weights = np.clip(self.external_con_rnd.normal(LEC_place_weight_mean,
-                                                                         LEC_place_weight_scale,
-                                                                         ndst), 1e-3, None)
-                MEC_cue_weights = np.clip(self.external_con_rnd.normal(MEC_cue_weight_mean,
-                                                                       MEC_cue_weight_scale,
-                                                                       ndst), 1e-3, None)
-                MEC_place_weights = np.clip(self.external_con_rnd.normal(MEC_place_weight_mean,
-                                                                         MEC_place_weight_scale,
-                                                                         ndst), 1e-3, None)
+
+                cue_weights = None
+                place_weights = None
+                gradient = self.params['external connectivity'][src_id][dst_pop_id].get('gradient', None)
+
+                if gradient is not None:
+                    cue_weight_mean = gradient['cue']['mean']
+                    cue_weight_scale = gradient['cue']['scale']
+                    place_weight_mean = gradient['place']['mean']
+                    place_weight_scale = gradient['place']['scale']
+                    cue_weights = np.clip(self.external_con_rnd.normal(cue_weight_mean,
+                                                                       cue_weight_scale,
+                                                                       ndst), 1e-4, None)
+                    place_weights = np.clip(self.external_con_rnd.normal(place_weight_mean,
+                                                                         place_weight_scale,
+                                                                         ndst), 1e-4, None)
                                             
                 weight_scale_func = None
-                if dst_pop_id == 0 and src_id == 100:
-                    weight_scale_func = lambda dst_gid, src_gid: MF_cue_weights[dst_gid] if dst_gid in cue_gid_set else MF_place_weights[dst_gid]
-                if dst_pop_id == 0 and src_id == 101:
-                    weight_scale_func = lambda dst_gid, src_gid: MEC_cue_weights[dst_gid] if dst_gid in cue_gid_set else MEC_place_weights[dst_gid]
-                if dst_pop_id == 0 and src_id == 102:
-                    weight_scale_func = lambda dst_gid, src_gid: LEC_cue_weights[dst_gid] if dst_gid in cue_gid_set else LEC_place_weights[dst_gid]
+                if cue_weights is not None and place_weights is not None:
+                    weight_scale_func = lambda dst_gid, src_gid: cue_weights[dst_gid] if dst_gid in cue_gid_set else place_weights[dst_gid]
                 
                 if dst_pop_id == 0 and src_id < 102: # For MF and MEC connections 0.0015
                     alpha = 0.00075

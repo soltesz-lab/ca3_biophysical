@@ -63,7 +63,6 @@ random_cue_locs = np.arange(len(cued_positions))
 
 if pc.id() == 0:
     np.random.shuffle(random_cue_locs)
-    logger.info(f"random_cue_locs = {random_cue_locs}")
 random_cue_locs = pc.py_broadcast(random_cue_locs, 0)
 
 time_for_single_lap = arena_size / mouse_speed * 1000.
@@ -81,10 +80,12 @@ frs_all = np.asarray(frs_all)
 
 # In[16]:
 
+circuit_config_name = "stdp_ie_mec_lec"
+output_id = "1011-" + circuit_config_name.replace("_", "-")
 
 place_information = {'place ids': [0], 'place fracs': [0.80]}
 
-diagram = WiringDiagram(os.path.join(params_path, 'circuitparams.yaml'), place_information)
+diagram = WiringDiagram(os.path.join(params_path, f'circuitparams_{circuit_config_name}.yaml'), place_information)
 
 place_ids = diagram.place_information[0]['place']
 cue_ids = diagram.place_information[0]['not place']
@@ -138,7 +139,7 @@ print('constructing circuit..')
 sys.stdout.flush()
 
 circuit = Circuit(params_prefix=params_path, 
-                  params_filename='circuitparams.yaml',
+                  params_filename=f'circuitparams_{circuit_config_name}.yaml',
                   arena_params_filename='arenaparams.yaml', 
                   internal_pop2id=diagram.pop2id, 
                   external_pop2id=diagram.external_pop2id, 
@@ -234,7 +235,7 @@ ext_spikes_MEC  = get_ext_population_spikes(circuit, 101)
 ext_spikes_LEC  = get_ext_population_spikes(circuit, 102)
 ext_spikes_Bk   = get_ext_population_spikes(circuit, 103)
 
-save_spike_vecs(pc, f"data/ext_spikes_0801-cue-ee-ei-nlaps-{nlaps}",
+save_spike_vecs(pc, f"data/ext_spikes_{output_id}-cue-ee-ei-nlaps-{nlaps}",
                 ext_spikes_MF,
                 ext_spikes_MEC,
                 ext_spikes_LEC,
@@ -243,14 +244,14 @@ save_spike_vecs(pc, f"data/ext_spikes_0801-cue-ee-ei-nlaps-{nlaps}",
 cell_spikes_PC    = get_cell_population_spikes(circuit,0)
 cell_spikes_PVBC  = get_cell_population_spikes(circuit,1)
 
-save_spike_vecs(pc, f"data/cell_spikes_0801-cue-ee-ei-nlaps-{nlaps}",
+save_spike_vecs(pc, f"data/cell_spikes_{output_id}-cue-ee-ei-nlaps-{nlaps}",
                 cell_spikes_PC,
                 cell_spikes_PVBC)
                 
         
-save_netcon_data(pc, circuit, f"params/0801-cue-ee-ei-nlaps-{nlaps}-dt-zerodot1-scale-2-v1.npz")
+save_netcon_data(pc, circuit, f"params/{output_id}-cue-ee-ei-nlaps-{nlaps}-dt-zerodot1-scale-2-v1.npz")
 
-save_v_vecs(pc, f"data/v_vecs_0801-cue-ee-ei-nlaps-{nlaps}", exc_v_vecs)
+save_v_vecs(pc, f"data/v_vecs_{output_id}-cue-ee-ei-nlaps-{nlaps}", exc_v_vecs)
 
 pc.runworker()
 pc.done()

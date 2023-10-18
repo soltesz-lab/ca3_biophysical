@@ -108,7 +108,7 @@ Circuit:
                 probability: 2 #1
                 synapse:
                     type: 'GABAA'
-                    weight1: 1.2e-4
+                    weight1: 5.2e-4
                     potentiation: 1.2e-5
                     tau1: 0.08
                     tau2: 4.8
@@ -261,7 +261,7 @@ Circuit:
                 probability: 412 #336
                 synapse:
                     type: 'AMPA'
-                    weight1: 3.4e-4 #3.0e-4 #2.8e-4 here #2.2e-4
+                    weight1: 1.0e-4 #3.4e-4 #3.0e-4 #2.8e-4 here #2.2e-4
                     tau1: 2.0
                     tau2: 6.3
                     e: 0.

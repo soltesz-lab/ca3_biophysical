@@ -1,6 +1,10 @@
 import numpy as np
 import copy
 from neuron import h
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 def _make_synapse(stype, compartment, weight, synapse_information, srcid, dstid, dst_cell, c, params):
     syn_params = {}
@@ -9,7 +13,7 @@ def _make_synapse(stype, compartment, weight, synapse_information, srcid, dstid,
         else: syn_params = {'e': synapse_information['e'], 'tau1': synapse_information['tau1'], 'tau2': synapse_information['tau2'] }
     elif stype == 'NMDA':
         syn_params = dst_cell.get_syn_parameters(compartment, stype)
-    elif stype == 'GABAA': 
+    elif stype == 'GABAA':
         syn_params = {'e': synapse_information['e'], 'tau1': synapse_information['tau1'], 'tau2': synapse_information['tau2'] }
     elif stype == 'GABAB':
         syn_params['e']    = -75.0
@@ -62,7 +66,7 @@ def create_netcon(pc, srcid, dstid, src_gid, dst_cell, synapse_information, comp
     weight = weight1
     if params['scale'] > 1:
         weight /= (float(params['scale']))
-    ws = netcon_params.get('weight_scale', 1.0)
+    ws = netcon_params.get('weight_scale', None)
         
     weight *= float(ws)
     weight0 = netcon_params.get('weight0', None)
@@ -81,6 +85,7 @@ def create_netcon(pc, srcid, dstid, src_gid, dst_cell, synapse_information, comp
             if ('weight_scale' in netcon_params):
                 syn_params['asymplasticity']['wmax_scaler'] = params['asymplasticity']['wmax_scaler'] * ws
 
+                
         c = None
         if srcid not in dst_cell.synGroups[stype][compartment]: 
             c = getattr(dst_cell, compartment)

@@ -34,7 +34,7 @@ delay = 500.
 dt = 0.1
 
 params_path = os.path.join(model_home, 'params')
-ar = Arena(os.path.join(params_path, 'arenaparams_ripple.yaml'))
+ar = Arena(os.path.join(params_path, 'arenaparams_ripple_inh_stdp.yaml'))
 ar.generate_population_firing_rates()
 
 
@@ -105,7 +105,7 @@ sys.stdout.flush()
 
 circuit = Circuit(params_prefix=params_path, 
                   params_filename='circuitparams_ripple.yaml',
-                  arena_params_filename='arenaparams_ripple.yaml', 
+                  arena_params_filename='arenaparams_ripple_inh_stdp.yaml', 
                   internal_pop2id=diagram.pop2id, 
                   external_pop2id=diagram.external_pop2id, 
                   external_spike_times = {100: mf_spike_times,
@@ -126,7 +126,10 @@ circuit.build_cells()
 
 pc = circuit.pc
 
-restore_netcons(pc, circuit, "params/0801-cue-ee-ei-nlaps-10-dt-zerodot1-scale-2-v1.npz")
+saved_weights_path = "params/0801-cue-ee-ei-nlaps-10-dt-zerodot1-scale-2-v1.npz"
+saved_weights_path = "params/1011-inh-stdp-cue-ee-ei-nlaps-20-dt-zerodot1-scale-2-v1.npz"
+
+restore_netcons(pc, circuit, saved_weights_path)
 
 
 import time
@@ -202,7 +205,7 @@ ext_spikes_MEC  = get_ext_population_spikes(circuit, 101)
 ext_spikes_LEC  = get_ext_population_spikes(circuit, 102)
 ext_spikes_Bk   = get_ext_population_spikes(circuit, 103)
 
-save_spike_vecs(pc, f"data/ext_spikes_1001-ripple-nlaps-{nlaps}",
+save_spike_vecs(pc, f"data/ext_spikes_1011-ripple-nlaps-{nlaps}",
                 ext_spikes_MF,
                 ext_spikes_MEC,
                 ext_spikes_LEC,
@@ -211,7 +214,7 @@ save_spike_vecs(pc, f"data/ext_spikes_1001-ripple-nlaps-{nlaps}",
 cell_spikes_PC    = get_cell_population_spikes(circuit,0)
 cell_spikes_PVBC  = get_cell_population_spikes(circuit,1)
 
-save_spike_vecs(pc, f"data/cell_spikes_1001-ripple-nlaps-{nlaps}",
+save_spike_vecs(pc, f"data/cell_spikes_1011-ripple-nlaps-{nlaps}",
                 cell_spikes_PC,
                 cell_spikes_PVBC)
                 
@@ -219,7 +222,7 @@ save_spike_vecs(pc, f"data/cell_spikes_1001-ripple-nlaps-{nlaps}",
 all_v_vecs = exc_v_vecs
 all_v_vecs.update(pvbc_v_vecs)
 
-save_v_vecs(pc, f"data/v_vecs_1001-ripple-nlaps-{nlaps}", all_v_vecs)
+save_v_vecs(pc, f"data/v_vecs_1011-ripple-nlaps-{nlaps}", all_v_vecs)
         
 
 
