@@ -122,7 +122,7 @@ Circuit:
                 probability: 2 #1
                 synapse:
                     type: 'GABAA'
-                    weight1: 1.2e-4
+                    weight1: 1.8e-4
                     potentiation: 1.2e-5
                     tau1: 0.08
                     tau2: 4.8
@@ -339,15 +339,15 @@ Circuit:
                 probability: 10
                 synapse:
                     type: ['STDPE2', 'NMDA']
-                    weight1: 3.35e-4 #4.0e-4 #6.0e-4
+                    weight1: 6.0e-4 #3.35e-4 #4.0e-4 #6.0e-4
                     compartments: ['lacunosumMEC']
                 gradient:
                   cue:
                     mean: 0.4
-                    scale: 0.025
+                    scale: 0.1
                   place:
                     mean: 1.0
-                    scale: 0.025
+                    scale: 0.1
             1:
                 probability: 4
                 synapse:

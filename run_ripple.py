@@ -127,7 +127,7 @@ circuit.build_cells()
 pc = circuit.pc
 
 saved_weights_path = "params/0801-cue-ee-ei-nlaps-10-dt-zerodot1-scale-2-v1.npz"
-saved_weights_path = "params/1011-inh-stdp-cue-ee-ei-nlaps-20-dt-zerodot1-scale-2-v1.npz"
+saved_weights_path = "params/1011-stdp-ie-mec-lec-cue-ee-ei-nlaps-15-dt-zerodot1-scale-2-v1.npz"
 
 restore_netcons(pc, circuit, saved_weights_path)
 
