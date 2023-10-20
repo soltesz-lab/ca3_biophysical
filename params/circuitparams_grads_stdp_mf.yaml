@@ -3,6 +3,7 @@
 
 
 Circuit:
+    config name: 1011_grads_stdp_mf
     scale: 2
     cells: [ca3pyr, pvbc] #[ca3pyr, pvbc, axoaxonic, bis, olm, isccr]
     symplasticity:
