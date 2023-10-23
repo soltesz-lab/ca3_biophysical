@@ -12,12 +12,6 @@ from collections import defaultdict
 import logging
 import argparse
 
-from os.path import expanduser
-home = expanduser("~")
-model_home = os.path.join(home, 'src/model/ca3_biophysical/')
-sys.path.append(os.path.join(home, 'model/ca3_biophysical/utils'))
-sys.path.append(os.path.join(home, 'model/ca3_biophysical/cells'))
-sys.path.append(os.path.join(home, 'bin/nrnpython3/lib/python'))
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -25,11 +19,6 @@ logger.setLevel(logging.INFO)
 from neuron import h
 from neuron.units import ms, mV
 h.nrnmpi_init()
-
-from SetupConnections import *
-from NeuronCircuit import Circuit, save_v_vecs, save_netcon_data, save_spike_vecs
-from analysis_utils import baks
-from simtime import SimTimeEvent
 
 import time
 
@@ -96,8 +85,28 @@ def main():
         help="Path to model home directory. ",
     )
 
+    parser.add_argument(
+        "-c", "--config-id",
+        required=True,
+        type=str,
+        help="Configuration identifier. ",
+    )
+
     args = parser.parse_args()
 
+    model_home = args.model_home
+    sys.path.append(os.path.join(model_home, 'utils'))
+    sys.path.append(os.path.join(model_home, 'cells'))
+
+    circuit_config_file = args.circuit_config
+    arena_config_file = args.arena_config
+
+    config_id = args.config_id
+    
+    from SetupConnections import WiringDiagram, Arena
+    from NeuronCircuit import Circuit, save_v_vecs, save_netcon_data, save_spike_vecs
+    from simtime import SimTimeEvent
+    
 
     print('constructing model..')
     sys.stdout.flush()
@@ -108,7 +117,11 @@ def main():
     pc = h.ParallelContext()
     
     params_path = os.path.join(model_home, 'params')
-    ar = Arena(os.path.join(params_path, 'arenaparams.yaml'))
+    arena_config_path = os.path.join(params_path, arena_config_file)
+    circuit_config_path = os.path.join(params_path, circuit_config_file)
+
+    
+    ar = Arena(os.path.join(params_path, arena_config_path))
     ar.generate_population_firing_rates()
     ar.generate_cue_firing_rates('LEC', 1.0)
     
@@ -144,13 +157,9 @@ def main():
 
     frs_all = np.asarray(frs_all)
 
-    circuit_config_name = "stdp_ie_mec_lec"
-    output_id = "1011-" + circuit_config_name.replace("_", "-")
-
     place_information = {'place ids': [0], 'place fracs': [0.80]}
     
-    diagram = WiringDiagram(os.path.join(params_path, f'circuitparams_{circuit_config_name}.yaml'),
-                            place_information)
+    diagram = WiringDiagram(circuit_config_path, place_information)
 
     place_ids = diagram.place_information[0]['place']
     cue_ids = diagram.place_information[0]['not place']
@@ -188,8 +197,8 @@ def main():
     sys.stdout.flush()
     
     circuit = Circuit(params_prefix=params_path, 
-                      params_filename=f'circuitparams_{circuit_config_name}.yaml',
-                      arena_params_filename='arenaparams.yaml', 
+                      params_filename=circuit_config_file,
+                      arena_params_filename=arena_config_file,
                       internal_pop2id=diagram.pop2id, 
                       external_pop2id=diagram.external_pop2id, 
                       external_spike_times = {100: mf_spike_times,
@@ -253,7 +262,7 @@ def main():
     ext_spikes_LEC  = get_ext_population_spikes(circuit, 102)
     ext_spikes_Bk   = get_ext_population_spikes(circuit, 103)
 
-    save_spike_vecs(pc, f"data/ext_spikes_{output_id}-cue-ee-ei-nlaps-{nlaps}",
+    save_spike_vecs(pc, f"data/ext_spikes_{config_id}-cue-ee-ei-nlaps-{nlaps}",
                     ext_spikes_MF,
                     ext_spikes_MEC,
                     ext_spikes_LEC,
@@ -262,16 +271,19 @@ def main():
     cell_spikes_PC    = get_cell_population_spikes(circuit,0)
     cell_spikes_PVBC  = get_cell_population_spikes(circuit,1)
 
-    save_spike_vecs(pc, f"data/cell_spikes_{output_id}-cue-ee-ei-nlaps-{nlaps}",
+    save_spike_vecs(pc, f"data/cell_spikes_{config_id}-cue-ee-ei-nlaps-{nlaps}",
                     cell_spikes_PC,
                     cell_spikes_PVBC)
                 
         
-    save_netcon_data(pc, circuit, f"params/{output_id}-cue-ee-ei-nlaps-{nlaps}-dt-zerodot1-scale-2-v1.npz")
+    save_netcon_data(pc, circuit, f"params/{config_id}-cue-ee-ei-nlaps-{nlaps}-dt-zerodot1-scale-2-v1.npz")
     
-    save_v_vecs(pc, f"data/v_vecs_{output_id}-cue-ee-ei-nlaps-{nlaps}", exc_v_vecs)
+    save_v_vecs(pc, f"data/v_vecs_{config_id}-cue-ee-ei-nlaps-{nlaps}", exc_v_vecs)
     
     pc.runworker()
     pc.done()
     h.quit()
     
+
+if __name__ == "__main__":
+    main()
