@@ -3,7 +3,6 @@
 
 
 Circuit:
-    config name: 1011_grads_stdp_mf
     scale: 2
     cells: [ca3pyr, pvbc] #[ca3pyr, pvbc, axoaxonic, bis, olm, isccr]
     symplasticity:
@@ -400,7 +399,7 @@ Circuit:
                 probability: 8
                 synapse:
                     type: ['AMPA', 'NMDA']
-                    weight1: 5.0e-3 #3.4e-4 #5.0e-3 for E->E and I->E 
+                    weight1: 3.4e-4 #3.4e-4 #5.0e-3 for E->E and I->E 
                     potentiation: 2.5e-5 #1.0e-5 #3.75e-6 #2.0e-5 
                     compartments: ['lacunosumLEC']
                 gradient:

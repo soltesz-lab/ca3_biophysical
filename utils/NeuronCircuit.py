@@ -355,7 +355,10 @@ class Circuit(object):
                                     curr = h.Vector()
                                     curr.record(syn._ref_i)
                                     self.lfp.append(curr)
-                    
+
+    def build_cue_iclamps(self, target_gids):
+        pass
+        
         
 def restore_netcons(pc, circ, input_filepath, dst_population_ids=None, root=0):
 

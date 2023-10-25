@@ -97,6 +97,8 @@ def main():
         help="Configuration identifier. ",
     )
 
+    args = parser.parse_args()
+
     model_home = args.model_home
     sys.path.append(os.path.join(model_home, 'utils'))
     sys.path.append(os.path.join(model_home, 'cells'))
@@ -262,3 +264,6 @@ def main():
     pc.runworker()
     pc.done()
     h.quit()
+
+if __name__ == "__main__":
+    main()

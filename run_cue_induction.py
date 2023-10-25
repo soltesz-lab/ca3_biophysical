@@ -199,6 +199,9 @@ def main():
     
     restore_netcons(pc, circuit, saved_weights_path)
 
+    
+    
+    
     exc_v_vecs     = get_population_voltages(circuit, 0)
     pvbc_v_vecs    = get_population_voltages(circuit, 1)
     # aac_v_vecs   = get_population_voltages(2)

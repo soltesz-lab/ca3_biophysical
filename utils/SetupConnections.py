@@ -87,7 +87,11 @@ class Arena(object):
         self.params_filepath = params_filepath
         self._read_arena_params()
         self._read_arena_cell_params()
-        self.arena_rnd = np.random.RandomState(seed=self.params['Arena']['random seed'])
+        
+        arena_rnd = None
+        if int(self.pc.id()) == 0:
+            arena_rnd = np.random.RandomState(seed=self.params['Arena']['random seed'])
+        self.arena_rnd = self.pc.py_broadcast(arena_rnd, 0)
         
         self.arena_size = self.params['Arena']['arena size']
         self.bin_size   = self.params['Arena']['bin size']
@@ -118,8 +122,6 @@ class Arena(object):
           
     def generate_population_firing_rates(self, seed=2e9):
 
-        rnd = np.random.RandomState(seed=int(seed))
-        
         for population_name in self.params['Spatial'].keys():
             self.cell_information[population_name] = {}
             current_population = self.params['Spatial'][population_name]
@@ -151,7 +153,7 @@ class Arena(object):
                 peak_rate_probs_nrm  = peak_rate_probs / peak_rate_prob_sum
                 min_rate  = current_population['place']['min rate']
                 diameter  = current_population['place']['diameter']
-                place_firing_rates = generate_place_firing_maps(field_centers, peak_rates, peak_rate_probs_nrm, min_rate, diameter, self.arena_map, rnd)
+                place_firing_rates = generate_place_firing_maps(field_centers, peak_rates, peak_rate_probs_nrm, min_rate, diameter, self.arena_map, self.arena_rnd)
                 for idx in range(ncells):
                     gid = idx + ctype_offset                    
                     self.cell_information[population_name]['cell info'][gid]['firing rate'] = place_firing_rates[idx]
@@ -172,7 +174,7 @@ class Arena(object):
                 gap       = current_population['grid']['gap']
                 
                 grid_firing_rates = generate_grid_firing_maps(field_centers, peak_rates, peak_rate_probs_nrm,
-                                                              min_rate, diameter, gap, self.arena_map, rnd)
+                                                              min_rate, diameter, gap, self.arena_map, self.arena_rnd)
                 for idx in range(ncells):
                     gid = idx + ctype_offset                    
                     self.cell_information[population_name]['cell info'][gid]['firing rate'] = grid_firing_rates[idx]
@@ -180,13 +182,13 @@ class Arena(object):
             ctype_offset += ncells
 
             
-    def generate_cue_firing_rates(self, population, percent_cue, seed=1e9):
-            rnd = np.random.RandomState(seed=int(seed))
+    def generate_cue_firing_rates(self, population, percent_cue):
+
             noise_fr    = self.params['Spatial'][population]['noise']['mean rate']
             ncells      = self.params['Spatial'][population]['ncells']
             
             ncue_cells = int(ncells*percent_cue)
-            cells_cued = rnd.choice(np.arange(ncells), size=(ncue_cells,), replace=False)
+            cells_cued = self.arena_rnd.choice(np.arange(ncells), size=(ncue_cells,), replace=False)
             min_fr=self.params['Spatial'][population]['cue']['min rate']
             peak_rates=self.params['Spatial'][population]['cue']['peak rates']
             peak_rate_probs = self.params['Spatial'][population]['cue']['peak rate probabilities']
@@ -197,7 +199,7 @@ class Arena(object):
             for i in range(ncells):
                 cue_fr = None
                 if i in cells_cued:
-                    max_fr = rnd.choice(peak_rates, p=peak_rate_probs_nrm)
+                    max_fr = self.arena_rnd.choice(peak_rates, p=peak_rate_probs_nrm)
                     cue_fr = place_field_fr(int(self.arena_size/2), self.arena_map, max_fr, diameter)
                 else:
                     cue_fr = [noise_fr for _ in range(len(self.arena_map))]
@@ -302,7 +304,6 @@ def generate_grid_firing_maps(field_centers, peak_rates, peak_rate_probs, min_ra
     firing_rates = {}
     arena_min, arena_max = np.min(arena_map), np.max(arena_map)
     for gid in list(field_centers.keys()):
-
         
         max_rate = rnd.choice(peak_rates, p=peak_rate_probs)
         current_center = field_centers[gid]
@@ -378,7 +379,6 @@ class WiringDiagram(object):
                 frac_place = place_fracs[place_ids.index(i)]
                 is_place = None
                 if int(self.pc.id()) == 0:
-
                     is_place = self.internal_con_rnd.choice([0,1],p=[1.0-frac_place, frac_place], size=(ncells[i],))
                 is_place = self.pc.py_broadcast(is_place, 0)
                 for (idx,ip) in enumerate(is_place):
@@ -391,7 +391,7 @@ class WiringDiagram(object):
             
             notplace_gids = set([idx + ctype_offset for idx in range(ncells[i])]) - set(place_gids)
 
-            logger.info(f"notplace_gids = {notplace_gids}")
+            logger.info(f"rank {int(self.pc.id())}: population {pop}: place_gids = {place_gids} ({len(place_gids)}) notplace_gids = {notplace_gids}")
             
             if i in place_ids:
                 self.place_information[i] = {}
@@ -456,10 +456,10 @@ class WiringDiagram(object):
                     place_weight_scale = gradient['place']['scale']
                     cue_weights = np.clip(self.external_con_rnd.normal(cue_weight_mean,
                                                                        cue_weight_scale,
-                                                                       nB), 1e-4, None)
+                                                                       nB), 0.0, None)
                     place_weights = np.clip(self.external_con_rnd.normal(place_weight_mean,
                                                                          place_weight_scale,
-                                                                         nB), 1e-4, None)
+                                                                         nB), 0.0, None)
                                             
 
                     weight_scale_func = None
@@ -564,10 +564,10 @@ class WiringDiagram(object):
                     place_weight_scale = gradient['place']['scale']
                     cue_weights = np.clip(self.external_con_rnd.normal(cue_weight_mean,
                                                                        cue_weight_scale,
-                                                                       ndst), 1e-4, None)
+                                                                       ndst), 0.0, None)
                     place_weights = np.clip(self.external_con_rnd.normal(place_weight_mean,
                                                                          place_weight_scale,
-                                                                         ndst), 1e-4, None)
+                                                                         ndst), 0.0, None)
                                             
                 weight_scale_func = None
                 if cue_weights is not None and place_weights is not None:

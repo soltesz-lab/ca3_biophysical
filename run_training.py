@@ -12,7 +12,6 @@ from collections import defaultdict
 import logging
 import argparse
 
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -106,7 +105,6 @@ def main():
     from SetupConnections import WiringDiagram, Arena
     from NeuronCircuit import Circuit, save_v_vecs, save_netcon_data, save_spike_vecs
     from simtime import SimTimeEvent
-    
 
     print('constructing model..')
     sys.stdout.flush()
