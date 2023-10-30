@@ -4,7 +4,7 @@ Arena:
     mouse speed: 30 # in cm/s
     bin size: 0.10 # in cm
     lap information:
-        nlaps: 10
+        nlaps: 7
         is spatial: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]    
     random seed: 1000000
     frac place: 0.75 # not used, defined elsewhere
@@ -21,7 +21,7 @@ Arena Cells:
             probabilities: [0.0, 0.63, 0.24, 0.13] #[0.88, 0.075, 0.029, 0.016]
         noise:
             mean rate: 1.0 #0.1
-            scale: 0.1
+            scale: 0.0
 
     MEC:
         id: 101
@@ -35,20 +35,20 @@ Arena Cells:
             gap: 50 #in cm
         noise:
             mean rate: 1.0 #0.1
-            scale: 0.1
+            scale: 0.0
 
             
     LEC:
         id: 102
         ncells: 250
         cue:
-            peak rates: [20.0]
+            peak rates: [40.0]
             peak rate probabilities: [1.0]
             min rate: 0.1
             diameter: 25
         noise:
             mean rate: 1.0 #0.1
-            scale: 0.1
+            scale: 0.0
 
 
             
@@ -57,4 +57,4 @@ Arena Cells:
         ncells: 2000
         noise:
             mean rate: 3.0 #0.1
-            scale: 0.1
+            scale: 0.0

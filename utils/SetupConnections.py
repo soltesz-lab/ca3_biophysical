@@ -223,15 +223,25 @@ class Arena(object):
 
         
         nfr      = np.clip(self.arena_rnd.normal(self.params['Spatial'][population]['noise']['mean rate'],
-                                                 scale=self.params['Spatial'][population]['noise']['scale']),
+                                                 scale=self.params['Spatial'][population]['noise']['scale'],
+                                                 size=ncells),
                            0.0, None)
-        noise_fr = [nfr for _ in range(len(self.arena_map))]
+        noise_fr = np.vstack([nfr for _ in range(len(self.arena_map))])
+
+        down_state_fr = noise_fr
+        if 'down state' in self.params['Spatial'][population]:
+            dsfr      = np.clip(self.arena_rnd.normal(self.params['Spatial'][population]['down state']['mean rate'],
+                                                      scale=self.params['Spatial'][population]['down state']['scale'],
+                                                      size=ncells),
+                                0.0, None)
+            down_state_fr = np.vstack([dsfr for _ in range(len(self.arena_map))])
+
         firing_rates = {}
         for gid in gids:
             try:
                 fr = population_info['cell info'][gid]['firing rate']
             except:
-                fr = noise_fr
+                fr = noise_fr[:,gid]
             firing_rates[gid] = fr
                 
         #self.arena_size, self.bin_size 
@@ -239,6 +249,7 @@ class Arena(object):
         lap_information = self.params['Arena']['lap information']
         nlaps           = lap_information['nlaps']
         is_spatial      = lap_information['is spatial']
+        down_state      = lap_information.get('down state', None)
         
         start_time = 0
         end_time  = nlaps * self.arena_size / mouse_speed
@@ -254,8 +265,11 @@ class Arena(object):
             online_number = 0
             for n in range(nlaps):
                 if not is_spatial[n]:
-                    if population == 'MF': current_full_fr.extend(np.multiply(noise_fr, 1.0))
-                    else: current_full_fr.extend(noise_fr)
+                    if (down_state is not None) and  (down_state[n] > 0):
+                        current_full_fr.extend(down_state_fr[:,gid])
+                    else:
+                        if population == 'MF': current_full_fr.extend(np.multiply(noise_fr[:,gid], 1.0))
+                        else: current_full_fr.extend(noise_fr[:,gid])
                 else: 
                     if cued:
                         random_position = self.cued_positions[self.random_cue_locs[online_number]]

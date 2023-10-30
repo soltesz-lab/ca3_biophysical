@@ -25,20 +25,19 @@ Circuit:
             0: # PYR -> PYR
                 probability: 10 #6
                 synapse: 
-                    type: ['AMPA', 'NMDA']
-                    weight1: 3.60e-3 #4.25e-3 #4.0e-3 #3.5e-3 #5.0e-3 #5.5e-3 #5.0e-3 #4.0e-3 
-                    potentiation: 1.0e-4 #8.0e-5 #7.75e-5 #8.0e-5 #6.0e-5 #4.50e-5 #5.0e-5 #4.0e-5 #2.5e-5 #3.0e-5 #6.5e-5 #5.0e-5 #1.0e-4 #1.45e-4 #1.60e-4 #8.5e-5 #6.0e-5 #1.25e-4 # 77-v1 uses 8.5e-6 v2 uses 1.25e-5
+                    type: ['STDPE2', 'NMDA']
+                    weight1: 1.0e-3 #3.6e-3 #3.6e-3 for E>E  #3.5e-3 for E>E + I>E
+                    potentiation: 5.5e-5   #5.5e-5 for E>E and E>E + E>E  #1.0e-4 for E->E + I->E
                     depression: 6.0e-4 
                     wmax_scaler: 3.0
                     compartments: ['oriensDistal', 'radiatum']
-                    
             1: # PYR -> PVBC
                 probability: 70 #35
                 synapse:
-                    type: 'AMPA'
-                    potentiation: 8.0e-5 #2.0e-4
+                    type: 'STDPE2' #'AMPA'
+                    potentiation: 8.0e-4 #8.0e-5 #2.0e-4
                     depression: 2.0e-4
-                    weight1: 8.0e-2 #1.0e-1 #2.1e-2 #is default
+                    weight1: 8.0e-2 #1.0e-1
                     tau1:  0.07 #0.50 
                     tau2:  0.20 #3.0 
                     e:     0.
@@ -95,20 +94,19 @@ Circuit:
             0: # PVBC-> PYR
                 probability: 10 #5
                 synapse:
-                    type: 'GABAA'
+                    type: 'GABAA' 
                     potentiation: 1.5e-5 #1.0e-5 #2.5e-5 #2.0e-5 #2.5e-5 #2.0e-5 #1.5e-5 #1.0e-5
                     depression: 4.0e-5
-                    weight1: 1.0e-3 #2.0e-3 #4.0e-3 #6.0e-3 #5.0e-3 #4.0e-3 #4.0e-4 #4.0e-3 is default
+                    weight1: 0.0014 #0.0014 for E>E + E>I #0.0018 for E>E #1.0e-3 for E>E + I>E
                     tau1: 0.30
                     tau2: 6.2
                     e: -75.
                     compartments: ['soma']
-                        
             1: # PVBC -> PVBC
                 probability: 2 #1
                 synapse:
                     type: 'GABAA'
-                    weight1: 5.2e-4
+                    weight1: 1.8e-4
                     potentiation: 1.2e-5
                     tau1: 0.08
                     tau2: 4.8
@@ -248,25 +246,33 @@ Circuit:
 
     external connectivity:
         100: # Mossy Fiber from DG
-            0: 
+            0: # PYR 
                 probability: 16 # 8
                 synapse:
-                    type: ['AMPA', 'NMDA']
+                    type: ['STDPE2', 'NMDA']
                     weight1: 7.5e-4 #8.25e-4 #8.05e-4 #8.0e-4 #1.10e-3 #8.0e-4 #1.05e-3 #7.5e-4 #6.5e-4 #7.5e-4 #6.0e-4 #4.5e-4  
                     potentiation: 1.5e-5 #1.75e-5 #2.0e-5 #5.0e-6 #1.5e-5 #9.0e-6 #4.5e-6 #2.0e-5 #77-v1(2.5e-5) #6.0e-5 #3.75e-6 
                     ptau: 17.0
                     dtau: 34.0
                     compartments: ['lucidum', 'oriensProximal']
-            1:
+                gradient:
+                  cue:
+                    mean: 0.0
+                    scale: 0.0
+                  place:
+                    mean: 1.0
+                    scale: 0.0
+
+            1: # PVBC
                 probability: 412 #336
                 synapse:
                     type: 'AMPA'
-                    weight1: 1.0e-4 #3.4e-4 #3.0e-4 #2.8e-4 here #2.2e-4
+                    weight1: 3.4e-4 #3.0e-4 #2.8e-4 here #2.2e-4
                     tau1: 2.0
                     tau2: 6.3
                     e: 0.
                     compartments: ['radM1', 'radM2', 'radT1', 'radT2']
-            2:
+            2: # AAC
                 probability: 232
                 synapse:
                     type: 'AMPA'
@@ -275,7 +281,7 @@ Circuit:
                     tau2: 6.3
                     e: 0.
                     compartments: ['radM1', 'radM2', 'radT1', 'radT2']
-            3:
+            3: # BiS
                 probability: 322
                 synapse:
                     type: 'AMPA'
@@ -284,7 +290,7 @@ Circuit:
                     tau2: 6.3
                     e: 0.
                     compartments: ['radM1', 'radM2', 'radT1', 'radT2']
-            4:
+            4: # OLM
                 probability: 56
                 synapse: 
                     type: 'AMPA'
@@ -293,7 +299,7 @@ Circuit:
                     tau2: 6.3
                     e: 0.
                     compartments: ['dend1', 'dend2']
-            5:
+            5: # ISCCR
                 probability: 139
                 synapse:
                     type: 'AMPA'
@@ -302,7 +308,7 @@ Circuit:
                     tau2: 6.3
                     e: 0.
                     compartments: ['radProx1', 'radProx2', 'radMed1', 'radMed2']
-            6:
+            6: # ISCCK
                 probability: 222 #111
                 synapse:
                     type: 'AMPA'
@@ -317,8 +323,15 @@ Circuit:
                 probability: 10
                 synapse:
                     type: ['AMPA', 'NMDA']
-                    weight1: 3.35e-4 #4.0e-4 #6.0e-4
+                    weight1: 3.35e-4 #3.35e-4 #4.0e-4 #6.0e-4
                     compartments: ['lacunosumMEC']
+                gradient:
+                  cue:
+                    mean: 0.0
+                    scale: 0.0
+                  place:
+                    mean: 1.0
+                    scale: 0.0
             1:
                 probability: 4
                 synapse:
@@ -366,14 +379,21 @@ Circuit:
                     e: 0.
                     compartments: ['lmM1', 'lmM2']
         102: # LEC
-            0: # PYR
+            0: 
                 probability: 8
                 synapse:
                     type: ['AMPA', 'NMDA']
-                    weight1: 3.4e-4 #5.0e-3 for E->E and I->E 
+                    weight1: 5.0e-3 #3.4e-4 #5.0e-3 for E->E and I->E 
                     potentiation: 2.5e-5 #1.0e-5 #3.75e-6 #2.0e-5 
                     compartments: ['lacunosumLEC']
-            1: # PVBC
+                gradient:
+                  cue:
+                    mean: 1.0
+                    scale: 0.0
+                  place:
+                    mean: 0.0
+                    scale: 0.0
+            1:
                 probability: 4
                 synapse:
                     type: 'AMPA'
@@ -425,7 +445,7 @@ Circuit:
                 probability: 80
                 synapse:
                     type: ['AMPA', 'NMDA']
-                    weight1: 8.5e-4 #7.85e-4 #7.65e-4 #7.55e-4 #7.5e-4 #6.0e-4
+                    weight1: 8.55e-4 #7.85e-4 #7.65e-4 #7.55e-4 #7.5e-4 #6.0e-4
                     tau1: 2.0
                     tau2: 6.3
                     e: 0.

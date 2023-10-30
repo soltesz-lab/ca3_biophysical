@@ -21,8 +21,8 @@ Arena Cells:
             diameter: 25 #in cm
             probabilities: [0.0, 0.63, 0.24, 0.13] #[0.88, 0.075, 0.029, 0.016]
         noise:
-            mean rate: 0.25 #0.1
-            scale: 0.01
+            mean rate: 1.0 #0.1
+            scale: 0.1
     MEC:
         id: 101
         ncells: 200
@@ -35,7 +35,7 @@ Arena Cells:
             gap: 50 # in cm
         noise:
             mean rate: 0.1 #0.1
-            scale: 0.1
+            scale: 0.01
             
     LEC:
         id: 102
@@ -47,13 +47,13 @@ Arena Cells:
             diameter: 25
             percent cue: 0.50
         noise:
-            mean rate: 0.1 #0.1
-            scale: 0.1
+            mean rate: 0.2 #0.1
+            scale: 0.01
 
             
     Background:
         id: 103
         ncells: 2000
         noise:
-            mean rate: 1.75 #2.0 #1.33
-            scale: 0.01
+            mean rate: 2.0 #1.33
+            scale: 0.1

@@ -177,8 +177,8 @@ def main():
     sys.stdout.flush()
     
     circuit = Circuit(params_prefix=params_path, 
-                      params_filename='circuitparams_ripple.yaml',
-                      arena_params_filename='arenaparams_ripple_inh_stdp.yaml', 
+                      params_filename=circuit_config_file,
+                      arena_params_filename=arena_config_file,
                       internal_pop2id=diagram.pop2id, 
                       external_pop2id=diagram.external_pop2id, 
                       external_spike_times = {100: mf_spike_times,
@@ -242,7 +242,7 @@ def main():
     ext_spikes_LEC  = get_ext_population_spikes(circuit, 102)
     ext_spikes_Bk   = get_ext_population_spikes(circuit, 103)
     
-    save_spike_vecs(pc, f"data/ext_spikes_1011-ripple-nlaps-{nlaps}",
+    save_spike_vecs(pc, f"data/ext_spikes_{config_id}-nlaps-{nlaps}",
                     ext_spikes_MF,
                     ext_spikes_MEC,
                     ext_spikes_LEC,
@@ -251,7 +251,7 @@ def main():
     cell_spikes_PC    = get_cell_population_spikes(circuit,0)
     cell_spikes_PVBC  = get_cell_population_spikes(circuit,1)
     
-    save_spike_vecs(pc, f"data/cell_spikes_1011-ripple-nlaps-{nlaps}",
+    save_spike_vecs(pc, f"data/cell_spikes_{config_id}-nlaps-{nlaps}",
                     cell_spikes_PC,
                     cell_spikes_PVBC)
                 
@@ -259,7 +259,7 @@ def main():
     all_v_vecs = exc_v_vecs
     all_v_vecs.update(pvbc_v_vecs)
 
-    save_v_vecs(pc, f"data/v_vecs_1011-ripple-nlaps-{nlaps}", all_v_vecs)
+    save_v_vecs(pc, f"data/v_vecs_{config_id}-nlaps-{nlaps}", all_v_vecs)
 
     pc.runworker()
     pc.done()

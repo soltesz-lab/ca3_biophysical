@@ -36,7 +36,7 @@ def get_ext_population_spikes(c,pop_id):
     return spike_vec_dict
 
 
-def get_population_voltages(c,pop_id,rec_dt=0.05):
+def get_population_voltages(c,pop_id,rec_dt=0.1):
     v_vec_dict = {}
     for cid, cell in c.neurons[pop_id].items():
         v_vec = h.Vector()
