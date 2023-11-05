@@ -1,5 +1,7 @@
 import numpy as np
+from collections import defaultdict 
 from scipy.signal import spectrogram, hilbert, butter, lfilter, medfilt
+
 
 #### circuit I/O
 
@@ -140,7 +142,66 @@ def internal_weight_change(circuit, src_id, dst_id, valid_gids):
         
     return weight_before, weight_after, pchange
 
+def restore_weights(diagram, file_path):
+    pop_weights_dict = defaultdict(lambda: dict())
+    saved_weights = { int(k): v for k,v in np.load(file_path).items() }
+    for pop in diagram.wiring_information.keys():
+        pop_id = diagram.pop2id[pop]
+        ctype_offset = diagram.wiring_information[pop]['ctype offset']
+        ncells = diagram.wiring_information[pop]['ncells']
+        for gid in range(ctype_offset, ctype_offset+ncells):
+            if gid in saved_weights:
+                src_gids = saved_weights[gid]['src_gids']
+                
+                src_gid_weights = saved_weights[gid]['weights']
+                src_gid_weights_upd = saved_weights[gid]['weights_upd']
+                src_gid_dict = defaultdict(list)
+                for src_pop in diagram.wiring_information.keys():
+                    src_pop_id = diagram.pop2id[src_pop]
+                    src_ctype_offset = diagram.wiring_information[src_pop]['ctype offset']
+                    src_ncells = diagram.wiring_information[src_pop]['ncells']
+                    this_src_gid_idxs = np.argwhere(np.logical_and(src_gids >= src_ctype_offset,
+                                                                   src_gids <= src_ctype_offset + src_ncells))[:,0]
+                    
+                    src_gid_dict[src_pop_id] = (src_gids[this_src_gid_idxs],
+                                                src_gid_weights[this_src_gid_idxs],
+                                                src_gid_weights_upd[this_src_gid_idxs])
+                for src_pop in diagram.external_information.keys():
+                    src_pop_id = diagram.external_pop2id[src_pop]
+                    src_ctype_offset = diagram.external_information[src_pop]['ctype offset']
+                    src_ncells = diagram.external_information[src_pop]['ncells']
+                    this_src_gid_idxs = np.argwhere(np.logical_and(src_gids >= src_ctype_offset,
+                                                                   src_gids <= src_ctype_offset + src_ncells))[:,0]
+                    src_gid_dict[src_pop_id] = (src_gids[this_src_gid_idxs],
+                                                src_gid_weights[this_src_gid_idxs],
+                                                src_gid_weights_upd[this_src_gid_idxs])
+                pop_weights_dict[pop_id][gid] = dict(src_gid_dict)
+    return dict(pop_weights_dict)
 
+def saved_weight_change(weights_dict, src_id, dst_id, valid_gids=None):
+    
+    weight_before, weight_after = [], []
+
+    this_weights_dict = weights_dict[dst_id]
+    for dst_gid in this_weights_dict.keys():
+        if valid_gids is not None and dst_gid not in valid_gids:
+            continue
+        if src_id not in this_weights_dict[dst_gid]: 
+            continue
+        src_gids, connection_weights, connection_weights_upd = this_weights_dict[dst_gid][src_id]
+        has_updated_weights = len(~np.isnan(connection_weights_upd)) > 0
+        for i, src_gid in enumerate(src_gids):
+            if has_updated_weights and not np.isnan(connection_weights_upd[i]):
+                weight_before.append(connection_weights[i])
+                weight_after.append(connection_weights_upd[i])
+            else:
+                weight_before.append(connection_weights[i])
+                weight_after.append(connection_weights[i])
+    pchange = []
+    for (b,a) in zip(weight_before, weight_after):
+        pchange.append((a-b)/(b+1.0e-9))
+        
+    return weight_before, weight_after, pchange
 
 #####
 
@@ -156,3 +217,24 @@ def butter_bandpass_filter(data, lowcut, highcut, fs, order=3):
     b, a = butter_bandpass(lowcut, highcut, fs, order=order)
     y = lfilter(b, a, data)
     return y
+
+####
+
+def spike_bins(spike_times, start, finish, binsize=100, gids=None):
+    
+    if gids is None:
+        gids = sorted(spike_times.keys())
+        
+    bins = np.arange(start, finish, binsize)
+    nbins = len(bins)+1
+    nspikes = np.zeros((nbins,),dtype=np.uint32)
+    for gid in gids:
+        sts = spike_times[gid]
+        if (gids is not None) and (gid not in gids):
+            continue
+        sts = np.asarray(sts)
+        this_ibins = np.digitize(sts, bins)
+        for ibin in this_ibins:
+            nspikes[ibin] += 1
+            
+    return nspikes
