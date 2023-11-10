@@ -4,7 +4,7 @@ Arena:
     mouse speed: 30 # in cm/s
     bin size: 0.10 # in cm
     lap information:
-        nlaps: 7
+        nlaps: 20
         is spatial: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]    
     random seed: 1000000
     frac place: 0.75 # not used, defined elsewhere

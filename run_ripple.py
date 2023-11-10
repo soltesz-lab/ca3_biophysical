@@ -34,14 +34,14 @@ def get_ext_population_spikes(c,pop_id):
     return spike_vec_dict
 
 
-def get_population_voltages(c,pop_id):
+def get_population_voltages(c,pop_id,rec_dt=0.1):
     v_vec_dict = {}
     for cid, cell in c.neurons[pop_id].items():
         v_vec = h.Vector()
         try:
-            v_vec.record(cell.axon(0.5)._ref_v)
+            v_vec.record(cell.axon(0.5)._ref_v, rec_dt)
         except:
-            v_vec.record(cell.soma(0.5)._ref_v)
+            v_vec.record(cell.soma(0.5)._ref_v, rec_dt)
         gid = c.ctype_offsets[pop_id] + cid
         v_vec_dict[gid] = v_vec
     return v_vec_dict

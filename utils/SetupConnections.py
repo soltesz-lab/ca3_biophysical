@@ -217,6 +217,17 @@ class Arena(object):
                 
     def generate_spike_times(self, population, dt=0.05, delay=0, cued=False):
          
+        mouse_speed = self.params['Arena']['mouse speed']
+        lap_information = self.params['Arena']['lap information']
+        nlaps           = lap_information['nlaps']
+        is_spatial      = lap_information['is spatial']
+        up_state        = lap_information.get('up state', None)
+        run_step_dur    = self.bin_size/mouse_speed
+        arena_length    = len(self.arena_map)
+        start_time = 0
+        end_time  = nlaps * self.arena_size / mouse_speed
+        bin2times = np.arange(0, end_time, step=run_step_dur, dtype='float32') * 1000.
+
         population_info = self.cell_information[population]
         ncells = population_info['ncells']
         gids   = range(int(self.pc.id()), ncells, int(self.pc.nhost()))
@@ -226,15 +237,28 @@ class Arena(object):
                                                  scale=self.params['Spatial'][population]['noise']['scale'],
                                                  size=ncells),
                            0.0, None)
-        noise_fr = np.vstack([nfr for _ in range(len(self.arena_map))])
+        noise_fr = np.vstack([nfr for _ in range(arena_length)])
 
-        down_state_fr = noise_fr
-        if 'down state' in self.params['Spatial'][population]:
-            dsfr      = np.clip(self.arena_rnd.normal(self.params['Spatial'][population]['down state']['mean rate'],
-                                                      scale=self.params['Spatial'][population]['down state']['scale'],
+        up_state_fr = noise_fr
+        if 'up state' in self.params['Spatial'][population]:
+            usfr      = np.clip(self.arena_rnd.normal(self.params['Spatial'][population]['up state']['mean rate'],
+                                                      scale=self.params['Spatial'][population]['up state']['scale'],
                                                       size=ncells),
                                 0.0, None)
-            down_state_fr = np.vstack([dsfr for _ in range(len(self.arena_map))])
+            usfr_duration  = self.params['Spatial'][population]['up state'].get("duration", None)
+            up_state_fr = None 
+            if usfr_duration is not None:
+                up_state_length = int(round(usfr_duration / run_step_dur))
+                n_up_state_fr = 0
+                up_state_fr_list = []
+                while n_up_state_fr < arena_length:
+                    up_state_fr_list.extend([usfr for _ in range(up_state_length)])
+                    n_up_state_fr += up_state_length
+                    up_state_fr_list.extend([nfr for _ in range(up_state_length)])
+                    n_up_state_fr += up_state_length
+                up_state_fr = np.vstack(up_state_fr_list[:arena_length])
+            else:
+                up_state_fr = np.vstack([usfr for _ in range(arena_length)])
 
         firing_rates = {}
         for gid in gids:
@@ -245,15 +269,6 @@ class Arena(object):
             firing_rates[gid] = fr
                 
         #self.arena_size, self.bin_size 
-        mouse_speed = self.params['Arena']['mouse speed']
-        lap_information = self.params['Arena']['lap information']
-        nlaps           = lap_information['nlaps']
-        is_spatial      = lap_information['is spatial']
-        down_state      = lap_information.get('down state', None)
-        
-        start_time = 0
-        end_time  = nlaps * self.arena_size / mouse_speed
-        bin2times = np.arange(0, end_time, step=self.bin_size/mouse_speed, dtype='float32') * 1000.
         
         if cued:
             self.cued_positions  = np.linspace(12.5, self.arena_size-12.5, np.sum(is_spatial))
@@ -265,8 +280,10 @@ class Arena(object):
             online_number = 0
             for n in range(nlaps):
                 if not is_spatial[n]:
-                    if (down_state is not None) and  (down_state[n] > 0):
-                        current_full_fr.extend(down_state_fr[:,gid])
+                    if (up_state is not None) and (up_state[n] > 0):
+                        this_fr = noise_fr[:, gid] + up_state_fr[:,gid]
+                        
+                        current_full_fr.extend(this_fr)
                     else:
                         if population == 'MF': current_full_fr.extend(np.multiply(noise_fr[:,gid], 1.0))
                         else: current_full_fr.extend(noise_fr[:,gid])
