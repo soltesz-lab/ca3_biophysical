@@ -239,23 +239,27 @@ class Arena(object):
                            0.0, None)
         noise_fr = np.vstack([nfr for _ in range(arena_length)])
 
-        up_state_fr = noise_fr
+        up_state_fr = None
         if 'up state' in self.params['Spatial'][population]:
             usfr      = np.clip(self.arena_rnd.normal(self.params['Spatial'][population]['up state']['mean rate'],
                                                       scale=self.params['Spatial'][population]['up state']['scale'],
                                                       size=ncells),
                                 0.0, None)
-            usfr_duration  = self.params['Spatial'][population]['up state'].get("duration", None)
+            usfr_on_duration  = self.params['Spatial'][population]['up state'].get("on duration", None)
+            usfr_off_duration  = self.params['Spatial'][population]['up state'].get("off duration", None)
+            if usfr_off_duration is None:
+                usfr_off_duration = usfr_on_duration
             up_state_fr = None 
-            if usfr_duration is not None:
-                up_state_length = int(round(usfr_duration / run_step_dur))
+            if usfr_on_duration is not None:
+                up_state_on_length = int(round(usfr_on_duration / run_step_dur))
+                up_state_off_length = int(round(usfr_off_duration / run_step_dur))
                 n_up_state_fr = 0
                 up_state_fr_list = []
                 while n_up_state_fr < arena_length:
-                    up_state_fr_list.extend([usfr for _ in range(up_state_length)])
-                    n_up_state_fr += up_state_length
-                    up_state_fr_list.extend([nfr for _ in range(up_state_length)])
-                    n_up_state_fr += up_state_length
+                    up_state_fr_list.extend([usfr for _ in range(up_state_on_length)])
+                    n_up_state_fr += up_state_on_length
+                    up_state_fr_list.extend([nfr for _ in range(up_state_off_length)])
+                    n_up_state_fr += up_state_off_length
                 up_state_fr = np.vstack(up_state_fr_list[:arena_length])
             else:
                 up_state_fr = np.vstack([usfr for _ in range(arena_length)])
@@ -280,8 +284,8 @@ class Arena(object):
             online_number = 0
             for n in range(nlaps):
                 if not is_spatial[n]:
-                    if (up_state is not None) and (up_state[n] > 0):
-                        this_fr = noise_fr[:, gid] + up_state_fr[:,gid]
+                    if (up_state_fr is not None) and (up_state is not None) and (up_state[n] > 0):
+                        this_fr = up_state_fr[:,gid]
                         
                         current_full_fr.extend(this_fr)
                     else:
