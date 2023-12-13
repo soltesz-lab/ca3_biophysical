@@ -21,9 +21,9 @@ Arena Cells:
             min rate: 0.1
             diameter: 25 #in cm
             probabilities: [0.0, 0.63, 0.24, 0.13] #[0.88, 0.075, 0.029, 0.016]
-        up state:
-            mean rate: 1.0 #0.1
-            scale: 0.1
+        #up state:
+        #    mean rate: 1.0 #0.1
+        #    scale: 0.1
         noise:
             mean rate: 0.1 #0.1
             scale: 0.1
@@ -39,8 +39,9 @@ Arena Cells:
             gap: 50 # in cm
         up state:
             mean rate: 1.0 #0.1
-            scale: 0.1
-            duration: 2.0
+            scale: 0.01
+            on duration: 1.0
+            off duration: 3.0
         noise:
             mean rate: 0.1 #0.1
             scale: 0.1

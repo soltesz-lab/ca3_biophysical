@@ -6,8 +6,8 @@ Arena:
     lap information:
         #nlaps: 1
         #is spatial: [0]
-        nlaps: 6
-        is spatial: [1,0,0,0,0,0]    
+        nlaps: 7
+        is spatial: [1,0,0,0,0,0,0]    
     random seed: 1000000
     
 Arena Cells:
@@ -34,7 +34,7 @@ Arena Cells:
             diameter: 25 #in cm
             gap: 50 # in cm
         noise:
-            mean rate: 0.1 #0.1
+            mean rate: 0.25 #0.1
             scale: 0.01
             
     LEC:
@@ -47,13 +47,12 @@ Arena Cells:
             diameter: 25
             percent cue: 0.50
         noise:
-            mean rate: 0.6 #0.1
+            mean rate: 0.25 #0.1
             scale: 0.01
-
             
     Background:
         id: 103
         ncells: 2000
         noise:
-            mean rate: 1.0 #1.33
+            mean rate: 1.33 #1.33
             scale: 0.01
