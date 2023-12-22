@@ -33,7 +33,8 @@ def _make_synapse(stype, compartment, weight, synapse_information, srcid, dstid,
         syn_params['p']  = pparams.get('potentiation', 1.0)
         syn_params['d']  = pparams.get('depression', 0.4)
         syn_params['thresh'] = pparams.get('thresh', -10.)
-        syn_params['wmax']   = pparams.get('wmax_scaler', 1.0) * weight
+        wmax_scaler = synapse_information.get('wmax_scaler', pparams.get('wmax_scaler', 1.0))
+        syn_params['wmax']   = wmax_scaler * weight
         syn_params['dtau']   = pparams.get('dtau', 34.0)
         syn_params['ptau']   = pparams.get('ptau', 17.0)   
         syn_params['p'] = synapse_information.get('potentiation', syn_params['p']) / params['scale']
@@ -106,8 +107,8 @@ def create_netcon(pc, srcid, dstid, src_gid, dst_cell, synapse_information, comp
         if (weight_upd is not None) and (not(np.isnan(weight_upd))):
             if stype =='STDPE2' or stype == 'STDPE2ASYM':
                 nc.weight[1] = weight_upd
-            else:
-                nc.weight[0] = weight_upd
+            elif stype =='AMPA' or stype == 'GABAA':
+                nc.weight[0] = weight + weight_upd
 
         ncs.append(nc)
         

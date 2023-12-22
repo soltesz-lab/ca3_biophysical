@@ -27,17 +27,18 @@ Circuit:
                 synapse: 
                     type: ['STDPE2', 'NMDA']
                     weight1: 8.0e-4 #3.6e-3 #3.6e-3 for E>E  #3.5e-3 for E>E + I>E
-                    potentiation: 2.0e-4   #5.5e-5 for E>E and E>E + E>E  #1.0e-4 for E->E + I->E
+                    potentiation: 5.0e-4   #5.5e-5 for E>E and E>E + E>E  #1.0e-4 for E->E + I->E
                     depression: 6.0e-4 
                     wmax_scaler: 20.0
                     compartments: ['oriensDistal', 'radiatum']
             1: # PYR -> PVBC
                 probability: 70 #35
                 synapse:
-                    type: 'AMPA'
+                    type: 'STDPE2'
                     potentiation: 8.0e-4 #8.0e-5 #2.0e-4
                     depression: 2.0e-4
-                    weight1: 1.0e-1 #1.0e-1
+                    wmax_scaler: 20.0
+                    weight1: 1.0e-3 #1.0e-1
                     tau1:  0.07 #0.50 
                     tau2:  0.20 #3.0 
                     e:     0.
@@ -95,7 +96,7 @@ Circuit:
                 probability: 10 #5
                 synapse:
                     type: 'STDPE2' #'GABAA' 
-                    potentiation: 1.25e-5 #1.0e-5 #2.5e-5 #2.0e-5 #2.5e-5 #2.0e-5 #1.5e-5 #1.0e-5
+                    potentiation: 2.0e-5 #1.0e-5 #2.5e-5 #2.0e-5 #2.5e-5 #2.0e-5 #1.5e-5 #1.0e-5
                     depression: 4.0e-5
                     weight1: 0.0018 #0.0014 for E>E + E>I #0.0018 for E>E #1.0e-3 for E>E + I>E
                     tau1: 0.30
@@ -256,6 +257,7 @@ Circuit:
                     ptau: 17.0
                     dtau: 34.0
                     compartments: ['lucidum', 'oriensProximal']
+                    wmax_scaler: 12.0
                 gradient:
                   cue:
                     mean: 0.0
@@ -265,7 +267,7 @@ Circuit:
                     scale: 0.0
 
             1: # PVBC
-                probability: 420 #336
+                probability: 412 #336
                 synapse:
                     type: 'AMPA'
                     weight1: 3.4e-4 #3.0e-4 #2.8e-4 here #2.2e-4
@@ -325,9 +327,9 @@ Circuit:
                 synapse:
                     type: ['STDPE2', 'NMDA']
                     weight1: 1.5e-4 #3.35e-4 #4.0e-4 #6.0e-4
-                    potentiation: 1.0e-4 
                     compartments: ['lacunosumMEC']
-                    wmax_scaler: 12.0
+                    potentiation: 2.5e-5 #1.0e-5 #3.75e-6 #2.0e-5 
+                    wmax_scaler: 8.0
                 gradient:
                   cue:
                     mean: 0.0

@@ -76,6 +76,15 @@ def main():
         help="Name of arena configuration file. ",
     )
 
+
+    parser.add_argument(
+        "--data-prefix",
+        required=False,
+        default="data",
+        type=str,
+        help="Path to data files. ",
+    )
+
     parser.add_argument(
         "--model-home",
         required=True,
@@ -97,6 +106,8 @@ def main():
         help="Configuration identifier. ",
     )
 
+
+
     args = parser.parse_args()
 
     model_home = args.model_home
@@ -107,6 +118,7 @@ def main():
     arena_config_file = args.arena_config
     config_id = args.config_id
     saved_weights_path = args.saved_weights_path
+    data_prefix = args.data_prefix
     
     from SetupConnections import WiringDiagram, Arena
     from NeuronCircuit import Circuit, save_v_vecs, save_netcon_data, save_spike_vecs, restore_netcons
@@ -242,7 +254,8 @@ def main():
     ext_spikes_LEC  = get_ext_population_spikes(circuit, 102)
     ext_spikes_Bk   = get_ext_population_spikes(circuit, 103)
     
-    save_spike_vecs(pc, f"data/ext_spikes_{config_id}-nlaps-{nlaps}",
+    save_spike_vecs(pc,
+                    os.path.join(data_prefix, f"ext_spikes_{config_id}-nlaps-{nlaps}"),
                     ext_spikes_MF,
                     ext_spikes_MEC,
                     ext_spikes_LEC,
@@ -251,7 +264,8 @@ def main():
     cell_spikes_PC    = get_cell_population_spikes(circuit,0)
     cell_spikes_PVBC  = get_cell_population_spikes(circuit,1)
     
-    save_spike_vecs(pc, f"data/cell_spikes_{config_id}-nlaps-{nlaps}",
+    save_spike_vecs(pc, 
+                    os.path.join(data_prefix, f"cell_spikes_{config_id}-nlaps-{nlaps}"),
                     cell_spikes_PC,
                     cell_spikes_PVBC)
                 
@@ -259,7 +273,9 @@ def main():
     all_v_vecs = exc_v_vecs
     all_v_vecs.update(pvbc_v_vecs)
 
-    save_v_vecs(pc, f"data/v_vecs_{config_id}-nlaps-{nlaps}", all_v_vecs)
+    save_v_vecs(pc, 
+                os.path.join(data_prefix, f"v_vecs_{config_id}-nlaps-{nlaps}"), 
+                all_v_vecs)
 
     pc.runworker()
     pc.done()

@@ -385,10 +385,11 @@ Circuit:
             0: 
                 probability: 10
                 synapse:
-                    type: ['AMPA', 'NMDA']
-                    weight1: 2.0e-2 #3.4e-4 #5.0e-3 for E->E and I->E 
-                    potentiation: 2.5e-5 #1.0e-5 #3.75e-6 #2.0e-5 
+                    type: ['STDPE2', 'NMDA']
+                    weight1: 3.0e-4 #3.4e-4 #5.0e-3 for E->E and I->E 
+                    potentiation: 5.0e-4 #1.0e-5 #3.75e-6 #2.0e-5 
                     depression: 2.5e-4
+                    wmax_scaler: 20.0
                     compartments: ['lacunosumLEC']
                 gradient:
                   cue:
