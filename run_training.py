@@ -255,9 +255,10 @@ def main():
     if save_weights_every < 0:
         save_weights_every = nlaps
         
+    h.tstop = delay
     for ilap in range(nlaps):
         
-        h.tstop =  time_for_single_lap * ilap + 500
+        h.tstop =  h.tstop + time_for_single_lap
     
         if pc.id() == 0:
             print(f'starting simulation for lap {ilap}/{nlaps} until {h.tstop} ms..')
