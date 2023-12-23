@@ -256,21 +256,20 @@ def main():
         save_weights_every = nlaps
         
     t = h.Vector().record(h._ref_t)
-    h.tstop = delay
+    simtime = SimTimeEvent(pc, time_for_single_lap * nlaps + delay, 8.0, 10, 0)
+    mindelay = pc.set_maxstep(10 * ms)
+    h.finitialize(-65 * mV)
+
     for ilap in range(nlaps):
         
-        h.tstop =  h.tstop + time_for_single_lap
-    
+        h.tstop = time_for_single_lap*(ilap + 1) + delay
+
         if pc.id() == 0:
             print(f'starting simulation for lap {ilap}/{nlaps} until {h.tstop} ms..')
             sys.stdout.flush()
-    
-        simtime = SimTimeEvent(pc, h.tstop, 8.0, 10, 0)
-
+            
         pc.set_maxstep(10 * ms)
-    
-        h.finitialize(-65 * mV)
-        pc.psolve(h.tstop * ms)
+        pc.psolve(h.tstop - mindelay)
     
         elapsed = time.time() - tic
         pc.barrier()
