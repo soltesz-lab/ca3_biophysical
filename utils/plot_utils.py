@@ -1,8 +1,18 @@
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+import seaborn as sns
+from analysis_utils import peri_event_time_histogram
+from scipy.stats import gaussian_kde
 
-    
+font = {'family' : 'sans-serif',
+        'sans-serif': 'Arial',
+        'style': 'normal',
+        'weight': 'normal',
+        'size'   : 18}
+matplotlib.rc('font', **font)
+
+
 def plot_spikes(spike_times, title, start, finish, gids=None):
     
     if gids is None:
@@ -14,7 +24,9 @@ def plot_spikes(spike_times, title, start, finish, gids=None):
     for gid in gids:
         sts = spike_times[gid]
         sts = np.asarray(sts)
-        plt.vlines(np.asarray(sts), i+0.5, i+1.5)
+        plt.eventplot(np.asarray(sts),
+                      lineoffsets=i+0.5,
+                      orientation='horizontal')
         sts_chop = sts[np.where( (sts>=start) & (sts<=finish)) [0]]
         frs.append(float(len(sts_chop)) / (finish-start) * 1000.)
         i += 1
@@ -52,3 +64,75 @@ def plot_spikes_with_density(spike_times, title, start, finish, gids=None, color
     #sns.kdeplot(sts_chop, ax=ax2, bw_method=0.01)
     ax2.set_xlim([start, finish])
     return nspikes
+
+
+
+def plot_peri_event_time_histogram(spike_times, time_extent, normalized=False,
+                                   bin_size=100,
+                                   color=None, axlabel=None,
+                                   label=None, ax=None):
+    
+    sts = np.concatenate(list(spike_times.values()))
+    
+    if ax is None:
+        ax = plt.gca()
+    if color is None:
+        line, = ax.plot(sts.mean(), 0)
+        color = line.get_color()
+        line.remove()
+
+    rate, bins = peri_event_time_histogram(spike_times, time_extent,
+                                           bin_size=bin_size,
+                                           normalized=normalized)
+    ax.bar(bins[:-1] - (time_extent[0] + (time_extent[1] - time_extent[0]) / 2), rate,
+           width=bin_size,
+           edgecolor=color,
+           linewidth=2,
+           fill=False)
+
+        
+
+def plot_avg_peri_event_time_histogram(spike_times, event_time_ranges, 
+                                       bin_size=100,
+                                       color=None, axlabel=None,
+                                       label=None, ax=None):
+    
+    sts = np.concatenate(list(spike_times.values()))
+    
+    if ax is None:
+        ax = plt.gca()
+    if color is None:
+        line, = ax.plot(sts.mean(), 0)
+        color = line.get_color()
+        line.remove()
+
+    rates = []
+    norm_bins = None
+    bin_range = None
+    
+    for time_extent in event_time_ranges:
+        rate, bins = peri_event_time_histogram(spike_times, time_extent,
+                                               bin_size=bin_size)
+        rates.append(rate)
+        if norm_bins is None:
+           time_range = time_extent[1] - time_extent[0]
+           norm_bins = bins[:-1] - (time_extent[0] + (time_range / 2))
+           bin_range = (-time_range/2, time_range/2)
+        else:
+           time_range = time_extent[1] - time_extent[0]
+           bin_range = (min(bin_range[0], -time_range/2.), max(bin_range[1], time_range/2))
+            
+            
+    avg_rate = np.mean(np.vstack(rates), axis=0)
+    std_rate = np.std(np.vstack(rates), axis=0)
+
+    ax.plot(norm_bins, avg_rate,
+            color=color,
+            linewidth=2)
+    ax.fill_between(norm_bins, avg_rate-std_rate, avg_rate+std_rate,
+                    alpha=0.1,
+                    color=color,
+                    linewidth=0)
+
+    ax.axvline(0, color='black', linestyle=':')
+    ax.set_xlim(bin_range)
