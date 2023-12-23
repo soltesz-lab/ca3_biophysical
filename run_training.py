@@ -99,6 +99,13 @@ def main():
         help="Configuration identifier. ",
     )
 
+    parser.add_argument(
+        "-s", "--save-weights-every",
+        required=False,
+        type=int, default=-1,
+        help="Save weights every n laps. ",
+    )
+
     args = parser.parse_args()
 
     model_home = args.model_home
@@ -111,6 +118,7 @@ def main():
     config_id = args.config_id
 
     data_prefix = args.data_prefix
+    save_weights_every = args.save_weights_every
     
     from SetupConnections import WiringDiagram, Arena
     from NeuronCircuit import Circuit, save_v_vecs, save_netcon_data, save_spike_vecs
@@ -243,25 +251,35 @@ def main():
     
     h.dt = 0.025
     h.celsius = 37.
-    h.tstop =  time_for_single_lap * nlaps + 500
-    
-    if pc.id() == 0:
-        print(f'starting simulation for {nlaps} lap(s) until {h.tstop} ms..')
-        sys.stdout.flush()
-    
-    simtime = SimTimeEvent(pc, h.tstop, 8.0, 10, 0)
 
-    pc.set_maxstep(10 * ms)
+    if save_weights_every < 0:
+        save_weights_every = nlaps
+        
+    for ilap in range(nlaps):
+        
+        h.tstop =  time_for_single_lap * ilap + 500
     
-    t = h.Vector().record(h._ref_t)
-    h.finitialize(-65 * mV)
-    pc.psolve(h.tstop * ms)
+        if pc.id() == 0:
+            print(f'starting simulation for lap {ilap}/{nlaps} until {h.tstop} ms..')
+            sys.stdout.flush()
     
-    elapsed = time.time() - tic
-    pc.barrier()
+        simtime = SimTimeEvent(pc, h.tstop, 8.0, 10, 0)
+
+        pc.set_maxstep(10 * ms)
     
-    if pc.id() == 0:
-        print('simulation took %0.3f seconds' % elapsed)
+        t = h.Vector().record(h._ref_t)
+        h.finitialize(-65 * mV)
+        pc.psolve(h.tstop * ms)
+    
+        elapsed = time.time() - tic
+        pc.barrier()
+
+        if (ilap + 1) % save_weights_every == 0:
+            save_netcon_data(pc, circuit, 
+                             os.path.join(data_prefix, f"{config_id}-cue-ee-ei-nlaps-{(ilap+1)}-dt-zerodot1-scale-2-v1.npz"))
+    
+        if pc.id() == 0:
+            print('simulation took %0.3f seconds' % elapsed)
 
     
 
@@ -286,8 +304,6 @@ def main():
                     cell_spikes_PVBC)
                 
         
-    save_netcon_data(pc, circuit, 
-                     os.path.join(data_prefix, f"{config_id}-cue-ee-ei-nlaps-{nlaps}-dt-zerodot1-scale-2-v1.npz"))
     
     save_v_vecs(pc, 
                 os.path.join(data_prefix, f"v_vecs_{config_id}-cue-ee-ei-nlaps-{nlaps}"), 
