@@ -255,6 +255,7 @@ def main():
     if save_weights_every < 0:
         save_weights_every = nlaps
         
+    t = h.Vector().record(h._ref_t)
     h.tstop = delay
     for ilap in range(nlaps):
         
@@ -268,7 +269,6 @@ def main():
 
         pc.set_maxstep(10 * ms)
     
-        t = h.Vector().record(h._ref_t)
         h.finitialize(-65 * mV)
         pc.psolve(h.tstop * ms)
     
