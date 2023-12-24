@@ -4,8 +4,8 @@ Arena:
     mouse speed: 30 # in cm/s
     bin size: 0.10 # in cm
     lap information:
-        nlaps: 20
-        is spatial: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]    
+        nlaps: 25
+        is spatial: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     random seed: 1000000
     frac place: 0.75 # not used, defined elsewhere
     
@@ -42,7 +42,7 @@ Arena Cells:
         id: 102
         ncells: 250
         cue:
-            peak rates: [40.0]
+            peak rates: [20.0]
             peak rate probabilities: [1.0]
             min rate: 0.1
             diameter: 25
