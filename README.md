@@ -69,4 +69,7 @@ The run_ripple script generates the following output files:
 - `ext_spikes_<config name>.npz`: spikes produces by the artificial spike sources in the model.
 - `v_vecs_<config name>.npz`: somatic voltage traces of all biophysical neurons in the model.
 
+## Analysis
+
+See notebook [analysis.ipynb](notebooks/analysis.ipynb)
 
