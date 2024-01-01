@@ -97,7 +97,7 @@ Circuit:
                     type: 'GABAA' 
                     potentiation: 1.25e-5 #1.0e-5 #2.5e-5 #2.0e-5 #2.5e-5 #2.0e-5 #1.5e-5 #1.0e-5
                     depression: 4.0e-5
-                    weight1: 0.003 #0.0014 for E>E + E>I #0.0018 for E>E #1.0e-3 for E>E + I>E
+                    weight1: 0.009 #0.0014 for E>E + E>I #0.0018 for E>E #1.0e-3 for E>E + I>E
                     tau1: 0.30
                     tau2: 6.2
                     e: -75.
@@ -386,7 +386,7 @@ Circuit:
                 probability: 10
                 synapse:
                     type: ['AMPA', 'NMDA']
-                    weight1: 5.0e-2 #3.4e-4 #5.0e-3 for E->E and I->E 
+                    weight1: 1.0e-2 #3.4e-4 #5.0e-3 for E->E and I->E 
                     potentiation: 2.5e-5 #1.0e-5 #3.75e-6 #2.0e-5 
                     depression: 2.5e-4
                     compartments: ['lacunosumLEC']
