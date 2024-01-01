@@ -12,29 +12,36 @@ font = {'family' : 'sans-serif',
         'size'   : 18}
 matplotlib.rc('font', **font)
 
-
-def plot_spikes(spike_times, title, start, finish, gids=None):
     
+def plot_spikes(spike_times, title, start, finish, gids=None, figsize=(6,2), colors='k', add_title=False, events=None):
+    start = start / 1000.
+    finish = finish / 1000.
     if gids is None:
         gids = sorted(spike_times.keys())
     frs = []
-    plt.figure(figsize=(12,2))
+    plt.figure(dpi=600, figsize=figsize)
     i = 0
     
     for gid in gids:
         sts = spike_times[gid]
-        sts = np.asarray(sts)
-        plt.eventplot(np.asarray(sts),
-                      lineoffsets=i+0.5,
-                      orientation='horizontal')
+        sts = np.asarray(sts) / 1000.
+        plt.eventplot(np.asarray(sts).reshape((1,-1)), lineoffsets=i+0.5, 
+                      orientation='horizontal',
+                      colors=colors)
         sts_chop = sts[np.where( (sts>=start) & (sts<=finish)) [0]]
-        frs.append(float(len(sts_chop)) / (finish-start) * 1000.)
+        frs.append(float(len(sts_chop)) / (finish-start))
         i += 1
+        
+    if events is not None:
+        event_y = np.ones(len(events)) * (len(gids) + 4)
+        plt.plot(events, event_y, marker='v', color='r', markersize=8, linestyle='none',)
+        
     plt.xlim([start, finish])
-    plt.title('%s fr. mean: %0.3f. std: %0.3f' % (title, np.mean(frs), np.std(frs)))
+    if add_title:
+        plt.title('%s fr. mean: %0.3f. std: %0.3f' % (title, np.mean(frs), np.std(frs)))
     plt.show()
     return
-
+        
 
 def plot_spikes_with_density(spike_times, title, start, finish, gids=None, color='k', binsize=150):
     
