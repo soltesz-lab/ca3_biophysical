@@ -1,0 +1,64 @@
+
+Arena:
+    arena size: 200 # in cm
+    mouse speed: 30 # in cm/s
+    bin size: 0.10 # in cm
+    lap information:
+        nlaps: 20
+        is spatial: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]    
+    random seed: 1000000
+    frac place: 0.75 # not used, defined elsewhere
+    
+Arena Cells:
+    MF:
+        id: 100
+        ncells: 400
+        place:
+            #peak rates: [20.0]
+            #peak rate probabilities: [1.0]
+            peak rates: [0.05, 0.08, 0.13, 0.51, 2.0, 3.17, 5.0, 8.2]
+            peak rate probabilities: [0.034, 0.125, 0.052, 0.08, 0.1, 0.05, 0.03, 0.2]
+            min rate: 0.1
+            diameter: 25 #in cm
+            probabilities: [0.0, 0.63, 0.24, 0.13] #[0.88, 0.075, 0.029, 0.016]
+        noise:
+            mean rate: 1.0 #0.1
+            scale: 0.1
+
+    MEC:
+        id: 101
+        ncells: 200
+        grid:            
+            #peak rate: 20.0
+            peak rates: [0.12, 0.19, 0.31, 0.5, 0.8, 1.25, 2.0, 3.2, 5.0, 8.0, 13.1, 20.4, 30.5, 50.0, 80.3]
+            peak rate probabilities: [0.003, 0.008, 0.005, 0.02, 0.03, 0.03, 0.04, 0.06, 0.09, 0.12, 0.12, 0.18, 0.18, 0.07, 0.008]
+            min rate: 0.1
+            ncells: 200 
+            diameter: 25 #in cm
+            gap: 50 #in cm
+        noise:
+            mean rate: 1.0 #0.1
+            scale: 0.1
+
+            
+    LEC:
+        id: 102
+        ncells: 250
+        cue:
+            #peak rate: 20.0
+            peak rates: [0.12, 0.19, 0.31, 0.5, 0.8, 1.25, 2.0, 3.2, 5.0, 8.0, 13.1, 20.4, 30.5, 50.0, 80.3]
+            peak rate probabilities: [0.003, 0.008, 0.005, 0.02, 0.03, 0.03, 0.04, 0.06, 0.09, 0.12, 0.12, 0.18, 0.18, 0.07, 0.008]
+            min rate: 0.1
+            diameter: 25
+        noise:
+            mean rate: 1.0 #0.1
+            scale: 0.1
+
+
+            
+    Background:
+        id: 103
+        ncells: 2000
+        noise:
+            mean rate: 3.0 #0.1
+            scale: 0.1
