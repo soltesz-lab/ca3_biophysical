@@ -10,7 +10,7 @@ export PATH=$HOME/install/bin:$PATH
 As in a typical NEURON workflow, use `nrnivmodl` to translate MOD files:
 
 ```
-nrnivmodl mod_directory
+nrnivmodl mechanisms
 ```
 
 ## Running Simulations
