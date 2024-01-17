@@ -108,6 +108,10 @@ class ca3pyrcell(object):
         self.soma.diam = 13.21
         self.soma.cm   = Cm
 
+        iconstant = props.get("iconstant", 0.0)
+        self.soma.insert('constant')
+        self.soma.ic_constant = iconstant
+        
         self.soma.insert('ds_CA3')
         self.soma.insert('hd_CA3')
         self.soma.insert('na3_CA3')
