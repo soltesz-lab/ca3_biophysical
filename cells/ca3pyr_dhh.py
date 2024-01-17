@@ -67,7 +67,7 @@ class ca3pyrcell(object):
     
     
     def generate_biophysics(self, ctype, props):
-        
+
         ghd   = 0.00001
         gna   = 0.022
         KMULT = 0.02
@@ -108,7 +108,7 @@ class ca3pyrcell(object):
         self.soma.diam = 13.21
         self.soma.cm   = Cm
 
-        iconstant = props.get("iconstant", 0.0)
+        iconstant = props.get("soma", dict()).get("iconstant", 0.0)
         self.soma.insert('constant')
         self.soma.ic_constant = iconstant
         
