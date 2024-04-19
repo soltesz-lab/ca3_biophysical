@@ -27,7 +27,33 @@ from ca3_neuron_utils import create_netcon
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-
+def apply_range_cell_props(prop_dict, ncells, initial_props, rnd):
+    return_dict = { i: dict(initial_props.items()) for i in range(ncells) }
+    for morph_type in prop_dict:
+        for i in return_dict:
+            if morph_type in return_dict[i]:
+                break
+            return_dict[i][morph_type] = dict()
+        cell_prop_array_dict = dict()
+        for f in prop_dict[morph_type]:
+            f_cell_prop_spec = prop_dict[morph_type][f]
+            f_cell_prop_array = None
+            if 'distribution' in f_cell_prop_spec:
+                distribution_spec = f_cell_prop_spec['distribution']
+                distribution_name = distribution_spec['name']
+                distribution_kwargs = { k : f_cell_prop_spec['distribution'][k] for k in distribution_spec
+                                        if k != 'name' }
+                f_cell_prop_array = getattr(rnd, distribution_name)(**distribution_kwargs, size=ncells)
+                if 'scale' in f_cell_prop_spec:
+                    f_cell_prop_array[:] = f_cell_prop_array / float(f_cell_prop_spec['scale'])
+            if f_cell_prop_array is not None:
+                cell_prop_array_dict[f] = f_cell_prop_array
+            print((np.min(f_cell_prop_array), np.max(f_cell_prop_array)))
+        for i in range(ncells):
+            for f in cell_prop_array_dict:
+                return_dict[i][morph_type][f] = cell_prop_array_dict[f][i]
+                
+    return return_dict
 
 
 class Circuit(object):
@@ -67,10 +93,12 @@ class Circuit(object):
         self.arena_cells = self.pc.py_broadcast(self.arena_cells, 0)
             
             
-    def build_cells(self):
+    def build_cells(self, seed=2e5):
+        rnd = np.random.RandomState(seed=int(seed))
         ext_types    = list(self.arena_cells.keys())
         cell_types   = self.cell_params['cells']
         cell_numbers = self.cell_params['ncells']
+        cell_props   = self.cell_params.get('cell properties', dict())
         ctype_offset = 0
 
         ca3pyr_props = None
@@ -86,10 +114,13 @@ class Circuit(object):
             ncells = cell_numbers[i]
             self.ctype_offsets[cidx] = ctype_offset
             self.neurons[cidx] = {}
+            this_cell_props = cell_props.get(ctype, dict())
+            if ctype == 'ca3pyr':
+                this_cell_props = apply_range_cell_props(this_cell_props, ncells, ca3pyr_props, rnd)
             for ctype_id in range(int(self.pc.id()), ncells, int(self.pc.nhost())):
                 gid = ctype_id + ctype_offset
                 if ctype == 'ca3pyr':
-                     cell = ca3pyrcell(gid, 'B', ca3pyr_props)
+                     cell = ca3pyrcell(gid, 'B', this_cell_props[ctype_id])
                 elif ctype == 'pvbc':
                     cell = PVBC(gid)
                 elif ctype == 'axoaxonic':

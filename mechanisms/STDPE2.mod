@@ -33,13 +33,13 @@ PARAMETER {
 	gbint = 100 (ms) <1e-9,1e9> : GABAB off interval (ms)
 	gblen = 100 (ms) <1e-9,1e9> : GABAB on length (ms)
 	gscale = 0.4	: relative suppression by GABAB
+	on=1	
 }
 
 ASSIGNED {
 	v (mV)
 	i (nA)
 	tpost (ms)
-	on
 	g (uS)
 	gs
 	factor
@@ -61,7 +61,6 @@ INITIAL {
 	factor = -exp(-tp/tau1) + exp(-tp/tau2)
 	factor = 1/factor
 	gs=1
-	on=1	: initially not plastic
 	tpost = -1e9
 	net_send(0, 1)
 	net_send(gbdel, 3)	: initial GABAB off period
