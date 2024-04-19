@@ -1,3 +1,40 @@
+## Biophysically detailed model of CA3 replay
+
+This repository contains a biophysical computational model of a
+simplified microcircuit of CA3, a hippocampal brain region associated
+with memory formation. During online training, the pyramidal cells in
+the model receive grid spatially-structured place and grid input and
+form spatial receptive fields after several simulated laps on a
+virtual linear track. A fraction of pyramidal cells receive sensory
+cue input at a randomly selected location during each lap. During the
+simulated offline period, the pyramidal cells in the model receive
+random input and undergo epochs of spontaneously sequential activity
+resembles, consistent with spontaneous memory replay. During these
+replay-like events, cue cells are suppressed and overall place and cue
+cell firing is significantly negatively correlated. This model shows
+that inhibitory plasticity is both sufficient and necessary for cue
+cell suppression during replay events, and suggests a possible
+mechanism for spatial map formation that is robust to distractor
+sensory inputs.
+
+## Prerequisites
+
+1) **Numpy** 
+
+The standard python module for matrix and vector computations: https://pypi.python.org/pypi/numpy.
+
+2) **Scipy** 
+
+The standard python module for statistical analysis: http://www.scipy.org/install.html.
+
+3) **Matplotlib**
+
+The standard python module for data visualization: http://matplotlib.org/users/installing.html.
+
+4) **NEURON**
+
+A simulator for biophysical models of neurons and networks of neurons: https://github.com/neuronsimulator/nrn
+
 ## Building Model
 
 Once NEURON is installed, set the `PATH` and `PYTHONPATH ` environment variables as follows:
