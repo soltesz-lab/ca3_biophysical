@@ -4,8 +4,8 @@ Arena:
     mouse speed: 30 # in cm/s
     bin size: 0.10 # in cm
     lap information:
-        nlaps: 20
-        is spatial: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]    
+        nlaps: 30
+        is spatial: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]    
     random seed: 1000000
     frac place: 0.75 # not used, defined elsewhere
     
@@ -14,8 +14,6 @@ Arena Cells:
         id: 100
         ncells: 400
         place:
-            #peak rates: [20.0]
-            #peak rate probabilities: [1.0]
             peak rates: [0.05, 0.08, 0.13, 0.51, 2.0, 3.17, 5.0, 8.2]
             peak rate probabilities: [0.034, 0.125, 0.052, 0.08, 0.1, 0.05, 0.03, 0.2]
             min rate: 0.1

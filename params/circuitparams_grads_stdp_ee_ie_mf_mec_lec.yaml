@@ -27,13 +27,13 @@ Circuit:
                 synapse: 
                     type: ['STDPE2', 'NMDA']
                     weight1: 3.6e-3 #3.6e-3 for E>E  #3.5e-3 for E>E + I>E
-                    potentiation: 9.0e-5   #5.5e-5 for E>E and E>E + E>E  #1.0e-4 for E->E + I->E
+                    potentiation: 2.0e-4   #5.5e-5 for E>E and E>E + E>E  #1.0e-4 for E->E + I->E
                     depression: 6.0e-4 
                     wmax_scaler: 20.0
                     compartments: ['oriensDistal', 'radiatum']
                 gradient:
                   cue:
-                    mean: 0.6
+                    mean: 0.3
                     scale: 0.025
                   place: 
                     mean: 1.0
@@ -42,10 +42,10 @@ Circuit:
             1: # PYR -> PVBC
                 probability: 70 #35
                 synapse:
-                    type: 'STDPE2' #'AMPA'
+                    type: 'AMPA'
                     potentiation: 8.0e-4 #8.0e-5 #2.0e-4
                     depression: 2.0e-4
-                    weight1: 8.0e-2 #1.0e-1
+                    weight1: 2.0e-1
                     tau1:  0.07 #0.50 
                     tau2:  0.20 #3.0 
                     e:     0.
@@ -105,18 +105,12 @@ Circuit:
                     type: 'STDPE2'
                     potentiation: 7.5e-5 #1.0e-5 #2.5e-5 #2.0e-5 #2.5e-5 #2.0e-5 #1.5e-5 #1.0e-5
                     depression: 4.0e-5
-                    weight1: 0.0014 #0.0014 for E>E + E>I #0.0018 for E>E #1.0e-3 for E>E + I>E
+                    weight1: 0.0018 #0.0014 for E>E + E>I #0.0018 for E>E #1.0e-3 for E>E + I>E
                     tau1: 0.30
                     tau2: 6.2
                     e: -75.
                     compartments: ['soma']
-                gradient:
-                  cue:
-                    mean: 0.5
-                    scale: 0.025
-                  place:
-                    mean: 1.0
-                    scale: 0.025
+                    wmax_scaler: 7.0
                         
             1: # PVBC -> PVBC
                 probability: 2 #1
@@ -266,8 +260,8 @@ Circuit:
                 probability: 16 # 8
                 synapse:
                     type: ['STDPE2', 'NMDA']
-                    weight1: 5.5e-4 #8.25e-4 #8.05e-4 #8.0e-4 #1.10e-3 #8.0e-4 #1.05e-3 #7.5e-4 #6.5e-4 #7.5e-4 #6.0e-4 #4.5e-4  
-                    potentiation: 1.5e-5 #1.75e-5 #2.0e-5 #5.0e-6 #1.5e-5 #9.0e-6 #4.5e-6 #2.0e-5 #77-v1(2.5e-5) #6.0e-5 #3.75e-6 
+                    weight1: 1.1e-3 #8.25e-4 #8.05e-4 #8.0e-4 #1.10e-3 #8.0e-4 #1.05e-3 #7.5e-4 #6.5e-4 #7.5e-4 #6.0e-4 #4.5e-4  
+                    potentiation: 5.5e-4 #1.75e-5 #2.0e-5 #5.0e-6 #1.5e-5 #9.0e-6 #4.5e-6 #2.0e-5 #77-v1(2.5e-5) #6.0e-5 #3.75e-6 
                     ptau: 17.0
                     dtau: 34.0
                     compartments: ['lucidum', 'oriensProximal']
@@ -280,7 +274,7 @@ Circuit:
                     scale: 0.025
 
             1: # PVBC
-                probability: 412 #336
+                probability: 420 #336
                 synapse:
                     type: 'AMPA'
                     weight1: 3.4e-4 #3.0e-4 #2.8e-4 here #2.2e-4
@@ -339,7 +333,7 @@ Circuit:
                 probability: 10
                 synapse:
                     type: ['STDPE2', 'NMDA']
-                    weight1: 6.0e-4 #3.35e-4 #4.0e-4 #6.0e-4
+                    weight1: 1.0e-4 #3.35e-4 #4.0e-4 #6.0e-4
                     potentiation: 1.5e-4
                     wmax_scaler: 12.0
                     compartments: ['lacunosumMEC']
@@ -398,11 +392,11 @@ Circuit:
                     compartments: ['lmM1', 'lmM2']
         102: # LEC
             0: 
-                probability: 8
+                probability: 10
                 synapse:
                     type: ['STDPE2', 'NMDA']
-                    weight1: 5.0e-3 #3.4e-4 #5.0e-3 for E->E and I->E 
-                    potentiation: 1.5e-4 #1.0e-5 #3.75e-6 #2.0e-5 
+                    weight1: 1.0e-3 #3.4e-4 #5.0e-3 for E->E and I->E 
+                    potentiation: 2.5e-4 #1.0e-5 #3.75e-6 #2.0e-5 
                     compartments: ['lacunosumLEC']
                 gradient:
                   cue:
