@@ -116,8 +116,8 @@ The run_ripple script generates the following output files:
 ## Model configurations associated with paper
 
 The following model configurations were used to produce the results in
-the paper.  The exact command lines used to run simulations for each
-configuration can be found in directory `scripts`.
+the paper.  The exact command line invocations used to run simulations for each
+configuration can be found in directory [scripts](scripts).
 
 
 ### Circuit parameters
