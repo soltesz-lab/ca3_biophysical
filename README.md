@@ -2,20 +2,27 @@
 
 This repository contains a biophysical computational model of a
 simplified microcircuit of CA3, a hippocampal brain region associated
-with memory formation. During online training, the pyramidal cells in
-the model receive grid spatially-structured place and grid input and
-form spatial receptive fields after several simulated laps on a
-virtual linear track. A fraction of pyramidal cells receive sensory
-cue input at a randomly selected location during each lap. During the
-simulated offline period, the pyramidal cells in the model receive
-random input and undergo epochs of spontaneously sequential activity
-resembles, consistent with spontaneous memory replay. During these
-replay-like events, cue cells are suppressed and overall place and cue
-cell firing is significantly negatively correlated. This model shows
-that inhibitory plasticity is both sufficient and necessary for cue
-cell suppression during replay events, and suggests a possible
-mechanism for spatial map formation that is robust to distractor
-sensory inputs.
+with memory formation. Results obtained with this model are reported in the paper:
+
+> Inhibitory plasticity supports replay generalization in the
+> hippocampus.  Zhenrui Liao, Satoshi Terada, Ivan Georgiev Raikov,
+> Darian Hadjiabadi, Ivan Soltesz, Attila Losonczy. Nat Neurosci 2024.
+
+During online training, the pyramidal cells in the model receive grid
+spatially-structured place and grid input and form spatial receptive
+fields after several simulated laps on a virtual linear track. A
+fraction of pyramidal cells receive sensory cue input at a randomly
+selected location during each lap. During the simulated offline
+period, the pyramidal cells in the model receive random input and
+undergo epochs of spontaneously sequential activity resembles,
+consistent with spontaneous memory replay. During these replay-like
+events, cue cells are suppressed and overall place and cue cell firing
+is significantly negatively correlated. This model shows that
+inhibitory plasticity is both sufficient and necessary for cue cell
+suppression during replay events, and suggests a possible mechanism
+for spatial map formation that is robust to distractor sensory inputs.
+
+
 
 ## Prerequisites
 
@@ -81,7 +88,7 @@ The run_training script generates the following output files:
 
 ### Offline phase
 
-Run the online phase simulation as follows:
+Run the offline phase simulation as follows:
 
 	mpirun -n <nprocs> python3 run_ripple.py \
             --model-home $PWD \
@@ -105,6 +112,28 @@ The run_ripple script generates the following output files:
 - `cell_spikes_<config name>.npz`: spikes produces by the biophysicial neurons in the model.
 - `ext_spikes_<config name>.npz`: spikes produces by the artificial spike sources in the model.
 - `v_vecs_<config name>.npz`: somatic voltage traces of all biophysical neurons in the model.
+
+## Model configurations associated with paper
+
+The following model configurations were used to produce the results in
+the paper.  The exact command lines used to run simulations for each
+configuration can be found in directory `scripts`.
+
+
+### Circuit parameters
+
+- `params/circuitparams_segs_eegrad_stdp_ee_ie_mf_mec_lec.yaml` : Baseline model configuration
+- `params/circuitparams_grads_stdp_ee_ie_mf_mec_lec.yaml` : Mixed MEC and LEC inputs
+- `params/circuitparams_segs_eegrad_stdp_ee_mf_mec_lec.yaml` : Alternate hypothesis: E->E plasticity
+- `params/circuitparams_segs_eegrad_stdp_ee_ei_mf_mec_lec.yaml`: Alternate hypothesis: E->E and E->I plasticity
+- `params/circuitparams_segs_eegrad_stdp_ee_ie_mf_mec_lec_ln.yaml`: Log-normal distribution of PYR firing rates
+
+### Input parameters
+
+- `params/arenaparams_uniform.yaml` : Input parameters for online phase
+- `arenaparams_ripple_uniform_high.yaml` : Input parameters for offline phase
+
+
 
 ## Analysis
 

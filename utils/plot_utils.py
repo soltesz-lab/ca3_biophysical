@@ -21,10 +21,12 @@ def plot_spikes(spike_times, title, start, finish, gids=None, figsize=(6,2), col
     frs = []
     plt.figure(dpi=600, figsize=figsize)
     i = 0
-    
+
+    sts_dict = {}
     for gid in gids:
         sts = spike_times[gid]
         sts = np.asarray(sts) / 1000.
+        sts_dict[gid] = sts
         plt.eventplot(np.asarray(sts).reshape((1,-1)), lineoffsets=i+0.5, 
                       orientation='horizontal',
                       colors=colors)
@@ -40,7 +42,7 @@ def plot_spikes(spike_times, title, start, finish, gids=None, figsize=(6,2), col
     if add_title:
         plt.title('%s fr. mean: %0.3f. std: %0.3f' % (title, np.mean(frs), np.std(frs)))
     plt.show()
-    return
+    return sts_dict
         
 
 def plot_spikes_with_density(spike_times, title, start, finish, gids=None, color='k', binsize=150):
@@ -129,9 +131,9 @@ def plot_avg_peri_event_time_histogram(spike_times, event_time_ranges,
            time_range = time_extent[1] - time_extent[0]
            bin_range = (min(bin_range[0], -time_range/2.), max(bin_range[1], time_range/2))
             
-            
-    avg_rate = np.mean(np.vstack(rates), axis=0)
-    std_rate = np.std(np.vstack(rates), axis=0)
+    rate_array = np.vstack(rates)
+    avg_rate = np.mean(rate_array, axis=0)
+    std_rate = np.std(rate_array, axis=0)
 
     ax.plot(norm_bins, avg_rate,
             color=color,
@@ -143,3 +145,7 @@ def plot_avg_peri_event_time_histogram(spike_times, event_time_ranges,
 
     ax.axvline(0, color='black', linestyle=':')
     ax.set_xlim(bin_range)
+
+    return norm_bins, rate_array
+
+    
